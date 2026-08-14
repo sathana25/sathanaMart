@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SathanaMart - Seller</title>
+
+    <link rel="stylesheet" href="seller.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>🛒 SathanaMart</h1>
+        <p>Seller Module</p>
+    </header>
+
+
+    <main>
+
+        <h2>Seller Dashboard</h2>
+
+        <p class="welcome">
+            Welcome, Seller!
+        </p>
+
+
+        <!-- ADD PRODUCT -->
+
+        <section class="add-section">
+
+            <h2>Add New Product</h2>
+
+            <input
+                type="text"
+                id="productName"
+                placeholder="Product Name">
+
+            <input
+                type="number"
+                id="productPrice"
+                placeholder="Price">
+
+            <input
+                type="number"
+                id="productStock"
+                placeholder="Stock">
+
+            <select id="productCategory">
+
+                <option value="">
+                    Select Category
+                </option>
+
+                <option value="Electronics">
+                    Electronics
+                </option>
+
+                <option value="Mobile">
+                    Mobile
+                </option>
+
+                <option value="Accessories">
+                    Accessories
+                </option>
+
+            </select>
+
+            <button onclick="addProduct()">
+                Add Product
+            </button>
+
+        </section>
+
+
+        <!-- MESSAGE -->
+
+        <p id="message"></p>
+
+
+        <!-- PRODUCTS -->
+
+        <section>
+
+            <h2 class="product-title">
+                My Products
+            </h2>
+
+            <div
+                id="productList"
+                class="products">
+
+            </div>
+
+        </section>
+
+
+        <button
+            class="back-button"
+            onclick="goBack()">
+
+            Back to Login
+
+        </button>
+
+    </main>
+
+
+    <script src="seller.js"></script>
+
+</body>
+
+</html>

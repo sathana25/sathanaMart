@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SathanaMart</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="logo">🛒</div>
+
+        <h1>SathanaMart</h1>
+
+        <p class="subtitle">
+            Your Online Shopping Platform
+        </p>
+
+
+        <!-- LOGIN / CREATE ACCOUNT BUTTONS -->
+
+        <div class="top-buttons">
+
+            <button
+                id="loginTab"
+                class="tab active"
+                onclick="showLogin()">
+
+                Login
+
+            </button>
+
+            <button
+                id="registerTab"
+                class="tab"
+                onclick="showRegister()">
+
+                Create Account
+
+            </button>
+
+        </div>
+
+
+        <!-- MESSAGE -->
+
+        <div id="message"></div>
+
+
+        <!-- LOGIN -->
+
+        <div id="loginBox">
+
+            <h2>Login</h2>
+
+            <input
+                type="email"
+                id="loginEmail"
+                placeholder="Enter Email">
+
+            <input
+                type="password"
+                id="loginPassword"
+                placeholder="Enter Password">
+
+            <select id="loginRole">
+
+                <option value="">
+                    Select Role
+                </option>
+
+                <option value="Buyer">
+                    Buyer
+                </option>
+
+                <option value="Seller">
+                    Seller
+                </option>
+
+                <option value="Admin">
+                    Admin
+                </option>
+
+            </select>
+
+            <button
+                class="main-button"
+                onclick="login()">
+
+                Login
+
+            </button>
+
+        </div>
+
+
+        <!-- CREATE ACCOUNT -->
+
+        <div
+            id="registerBox"
+            style="display:none;">
+
+            <h2>Create Account</h2>
+
+
+            <input
+                type="text"
+                id="name"
+                placeholder="Enter Name">
+
+
+            <input
+                type="email"
+                id="email"
+                placeholder="Enter Email">
+
+
+            <input
+                type="password"
+                id="password"
+                placeholder="Create Password">
+
+
+            <input
+                type="password"
+                id="confirmPassword"
+                placeholder="Confirm Password">
+
+
+            <select id="role">
+
+                <option value="">
+                    Select Role
+                </option>
+
+                <option value="Buyer">
+                    Buyer
+                </option>
+
+                <option value="Seller">
+                    Seller
+                </option>
+
+            </select>
+
+
+            <button
+                class="main-button"
+                onclick="createAccount()">
+
+                Create Account
+
+            </button>
+
+        </div>
+
+
+        <!-- BACK TO LOGIN -->
+
+        <button
+            id="backLoginButton"
+            onclick="showLogin()"
+            style="display:none;">
+
+            Back to Login
+
+        </button>
+
+    </div>
+
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
