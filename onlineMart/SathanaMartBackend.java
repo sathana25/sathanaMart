@@ -1,252 +1,828 @@
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.Scanner;
 import com.sun.net.httpserver.HttpServer;
-import com.sun.net.httpserver.HttpExchange;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 
 public class SathanaMartBackend {
 
-    // Temporary account storage
-    static String name = "";
-    static String email = "";
-    static String password = "";
-    static String role = "";
+    static final String URL =
+            "jdbc:mysql://localhost:3306/SathanaMart";
 
-    static boolean accountCreated = false;
+    static final String USERNAME = "root";
 
-    public static void main(String[] args) throws Exception {
+    static final String PASSWORD =
+            "sathana2007@";
 
-        HttpServer server = HttpServer.create(
-                new InetSocketAddress(8080), 0);
 
-        server.createContext(
-                "/register",
-                SathanaMartBackend::register
+    public static void main(String[] args) {
+        try {
+    HttpServer server = HttpServer.create(
+            new java.net.InetSocketAddress(8080), 0
+    );
+    server.createContext("/", exchange -> {
+
+    java.nio.file.Path file =
+            java.nio.file.Paths.get("index.html");
+
+    byte[] content =
+            java.nio.file.Files.readAllBytes(file);
+
+    exchange.getResponseHeaders().set(
+            "Content-Type",
+            "text/html"
+    );
+
+    exchange.sendResponseHeaders(
+            200,
+            content.length
+    );
+
+    java.io.OutputStream output =
+            exchange.getResponseBody();
+
+    output.write(content);
+    output.close();
+});
+     server.createContext("/register", exchange -> {
+
+    if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+
+        String requestData =
+                new String(exchange.getRequestBody().readAllBytes());
+
+        String[] values = requestData.split("&");
+
+        String name = "";
+        String email = "";
+        String password = "";
+        String role = "";
+
+        for (String value : values) {
+
+            String[] pair = value.split("=", 2);
+
+            if (pair.length < 2) {
+                continue;
+            }
+
+            String key = pair[0];
+            String data = java.net.URLDecoder.decode(
+                    pair[1],
+                    "UTF-8"
+            );
+
+            if (key.equals("name")) {
+                name = data;
+            }
+
+            if (key.equals("email")) {
+                email = data;
+            }
+
+            if (key.equals("password")) {
+                password = data;
+            }
+
+            if (key.equals("role")) {
+                role = data;
+            }
+        }
+
+        String sql =
+                "INSERT INTO users (name, email, password, role) " +
+                "VALUES (?, ?, ?, ?)";
+
+        String response;
+
+        try {
+
+            Connection connection =
+                    DriverManager.getConnection(
+                            URL,
+                            USERNAME,
+                            PASSWORD
+                    );
+
+            PreparedStatement statement =
+                    connection.prepareStatement(sql);
+
+            statement.setString(1, name);
+            statement.setString(2, email);
+            statement.setString(3, password);
+            statement.setString(4, role);
+
+            int result =
+                    statement.executeUpdate();
+
+            if (result > 0) {
+                response =
+                        "Account Created Successfully!";
+            } else {
+                response =
+                        "Account Creation Failed!";
+            }
+
+            statement.close();
+            connection.close();
+
+        } catch (Exception e) {
+
+            response =
+                    "Account Creation Failed!";
+        }
+
+        exchange.getResponseHeaders().set(
+                "Content-Type",
+                "text/plain"
         );
 
-        server.createContext(
-                "/login",
-                SathanaMartBackend::login
+        exchange.sendResponseHeaders(
+                200,
+                response.length()
         );
 
-        server.createContext(
-                "/",
-                SathanaMartBackend::home
-        );
+        java.io.OutputStream output =
+                exchange.getResponseBody();
 
-        server.start();
+        output.write(response.getBytes());
+        output.close();
 
-        System.out.println("--------------------------------");
-        System.out.println("SathanaMart Java Backend Started");
-        System.out.println("--------------------------------");
-        System.out.println("Server: http://localhost:8080");
+    } else {
+
+        exchange.sendResponseHeaders(405, -1);
+        exchange.close();
     }
+});
+server.createContext("/login", exchange -> {
+
+    if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+
+        String requestData =
+                new String(exchange.getRequestBody().readAllBytes());
+
+        String[] values = requestData.split("&");
+
+        String email = "";
+        String password = "";
+        String role = "";
+
+        for (String value : values) {
+
+            String[] pair = value.split("=", 2);
+
+            if (pair.length < 2) {
+                continue;
+            }
+
+            String key = pair[0];
+
+            String data =
+                    java.net.URLDecoder.decode(
+                            pair[1],
+                            "UTF-8"
+                    );
+
+            if (key.equals("email")) {
+                email = data;
+            }
+
+            if (key.equals("password")) {
+                password = data;
+            }
+
+            if (key.equals("role")) {
+                role = data;
+            }
+        }
+
+        String response;
+
+        try {
+
+            Connection connection =
+                    DriverManager.getConnection(
+                            URL,
+                            USERNAME,
+                            PASSWORD
+                    );
+
+            String sql =
+                    "SELECT * FROM users " +
+                    "WHERE email = ? AND password = ? AND role = ?";
+
+            PreparedStatement statement =
+                    connection.prepareStatement(sql);
+
+            statement.setString(1, email);
+            statement.setString(2, password);
+            statement.setString(3, role);
+
+            ResultSet resultSet =
+                    statement.executeQuery();
+
+            if (resultSet.next()) {
+
+                response =
+                        "Login Successfully! Welcome to SathanaMart";
+
+            } else {
+
+                response =
+                        "Invalid Email, Password or Role!";
+
+            }
+
+            resultSet.close();
+            statement.close();
+            connection.close();
+
+        } catch (Exception e) {
+
+            response =
+                    "Login Failed!";
+
+        }git log --oneline -3
 
 
-    // HOME
-    static void home(HttpExchange exchange)
-            throws IOException {
-
-        sendResponse(
-                exchange,
-                "SathanaMart Java Backend is Running!"
+        exchange.getResponseHeaders().set(
+                "Content-Type",
+                "text/plain"
         );
+
+        exchange.sendResponseHeaders(
+                200,
+                response.length()
+        );
+
+        java.io.OutputStream output =
+                exchange.getResponseBody();
+
+        output.write(response.getBytes());
+        output.close();
+
+    } else {
+
+        exchange.sendResponseHeaders(405, -1);
+        exchange.close();
+    }
+});
+server.createContext("/script.js", exchange -> {
+
+    java.nio.file.Path file =
+            java.nio.file.Paths.get("script.js");
+
+    byte[] content =
+            java.nio.file.Files.readAllBytes(file);
+
+    exchange.getResponseHeaders().set(
+            "Content-Type",
+            "application/javascript"
+    );
+
+    exchange.sendResponseHeaders(
+            200,
+            content.length
+    );
+
+    java.io.OutputStream output =
+            exchange.getResponseBody();
+
+    output.write(content);
+    output.close();
+});
+
+
+server.createContext("/style.css", exchange -> {
+
+    java.nio.file.Path file =
+            java.nio.file.Paths.get("style.css");
+
+    byte[] content =
+            java.nio.file.Files.readAllBytes(file);
+
+    exchange.getResponseHeaders().set(
+            "Content-Type",
+            "text/css"
+    );
+
+    exchange.sendResponseHeaders(
+            200,
+            content.length
+    );
+
+    java.io.OutputStream output =
+            exchange.getResponseBody();
+
+    output.write(content);
+    output.close();
+});
+server.createContext("/seller.html", exchange -> {
+
+    java.nio.file.Path file =
+            java.nio.file.Paths.get("seller.html");
+
+    byte[] content =
+            java.nio.file.Files.readAllBytes(file);
+
+    exchange.getResponseHeaders().set(
+            "Content-Type",
+            "text/html"
+    );
+
+    exchange.sendResponseHeaders(
+            200,
+            content.length
+    );
+
+    java.io.OutputStream output =
+            exchange.getResponseBody();
+
+    output.write(content);
+    output.close();
+});
+
+
+server.createContext("/products", exchange -> {
+
+    if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+
+        String requestData =
+                new String(exchange.getRequestBody().readAllBytes());
+
+        String[] values = requestData.split("&");
+
+        String name = "";
+        String price = "";
+        String stock = "";
+        String category = "";
+
+        for (String value : values) {
+
+            String[] pair = value.split("=", 2);
+
+            if (pair.length < 2) {
+                continue;
+            }
+
+            String key = pair[0];
+
+            String data = java.net.URLDecoder.decode(
+                    pair[1],
+                    "UTF-8"
+            );
+
+            if (key.equals("name")) {
+                name = data;
+            }
+
+            if (key.equals("price")) {
+                price = data;
+            }
+
+            if (key.equals("stock")) {
+                stock = data;
+            }
+
+            if (key.equals("category")) {
+                category = data;
+            }
+        }
+
+        String sql =
+                "INSERT INTO products (name, price, stock, category) " +
+                "VALUES (?, ?, ?, ?)";
+
+        String response;
+
+        try {
+
+            Connection connection =
+                    DriverManager.getConnection(
+                            URL,
+                            USERNAME,
+                            PASSWORD
+                    );
+
+            PreparedStatement statement =
+                    connection.prepareStatement(sql);
+
+            statement.setString(1, name);
+            statement.setDouble(2, Double.parseDouble(price));
+            statement.setInt(3, Integer.parseInt(stock));
+            statement.setString(4, category);
+
+            int result =
+                    statement.executeUpdate();
+
+            if (result > 0) {
+                response =
+                        "Product Added Successfully!";
+            } else {
+                response =
+                        "Product Addition Failed!";
+            }
+
+            statement.close();
+            connection.close();
+
+        } catch (Exception e) {
+
+            response =
+                    "Product Addition Failed!";
+        }
+
+        exchange.getResponseHeaders().set(
+                "Content-Type",
+                "text/plain"
+        );
+
+        exchange.sendResponseHeaders(
+                200,
+                response.length()
+        );
+
+        java.io.OutputStream output =
+                exchange.getResponseBody();
+
+        output.write(response.getBytes());
+        output.close();
+
+    } else if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+
+        StringBuilder json = new StringBuilder();
+
+        json.append("[");
+
+        try {
+
+            Connection connection =
+                    DriverManager.getConnection(
+                            URL,
+                            USERNAME,
+                            PASSWORD
+                    );
+
+            String sql =
+                    "SELECT id, name, price, stock, category FROM products";
+
+            PreparedStatement statement =
+                    connection.prepareStatement(sql);
+
+            ResultSet resultSet =
+                    statement.executeQuery();
+
+            boolean first = true;
+
+            while (resultSet.next()) {
+
+                if (!first) {
+                    json.append(",");
+                }
+
+                json.append("{");
+
+                json.append("\"id\":")
+                    .append(resultSet.getInt("id"))
+                    .append(",");
+
+                json.append("\"name\":\"")
+                    .append(resultSet.getString("name"))
+                    .append("\",");
+
+                json.append("\"price\":")
+                    .append(resultSet.getDouble("price"))
+                    .append(",");
+
+                json.append("\"stock\":")
+                    .append(resultSet.getInt("stock"))
+                    .append(",");
+
+                json.append("\"category\":\"")
+                    .append(resultSet.getString("category"))
+                    .append("\"");
+
+                json.append("}");
+
+                first = false;
+            }
+
+            resultSet.close();
+            statement.close();
+            connection.close();
+
+            json.append("]");
+
+            String response = json.toString();
+
+            exchange.getResponseHeaders().set(
+                    "Content-Type",
+                    "application/json"
+            );
+
+            exchange.sendResponseHeaders(
+                    200,
+                    response.length()
+            );
+
+            java.io.OutputStream output =
+                    exchange.getResponseBody();
+
+            output.write(response.getBytes());
+            output.close();
+
+        } catch (Exception e) {
+
+            String response =
+                    "[]";
+
+            exchange.getResponseHeaders().set(
+                    "Content-Type",
+                    "application/json"
+            );
+
+            exchange.sendResponseHeaders(
+                    500,
+                    response.length()
+            );
+
+            java.io.OutputStream output =
+                    exchange.getResponseBody();
+
+            output.write(response.getBytes());
+            output.close();
+        }
+
+    } else {
+
+        exchange.sendResponseHeaders(405, -1);
+        exchange.close();
+    }
+});
+server.createContext("/seller.js", exchange -> {
+
+    java.nio.file.Path file =
+            java.nio.file.Paths.get("seller.js");
+
+    byte[] content =
+            java.nio.file.Files.readAllBytes(file);
+
+    exchange.getResponseHeaders().set(
+            "Content-Type",
+            "application/javascript"
+    );
+
+    exchange.sendResponseHeaders(
+            200,
+            content.length
+    );
+
+    java.io.OutputStream output =
+            exchange.getResponseBody();
+
+    output.write(content);
+    output.close();
+});
+
+
+server.createContext("/seller.css", exchange -> {
+
+    java.nio.file.Path file =
+            java.nio.file.Paths.get("seller.css");
+
+    byte[] content =
+            java.nio.file.Files.readAllBytes(file);
+
+    exchange.getResponseHeaders().set(
+            "Content-Type",
+            "text/css"
+    );
+
+    exchange.sendResponseHeaders(
+            200,
+            content.length
+    );
+
+    java.io.OutputStream output =
+            exchange.getResponseBody();
+
+    output.write(content);
+    output.close();
+});
+    server.start();
+
+
+    System.out.println("SathanaMart Server Started!");
+    System.out.println("Open: http://localhost:8080");
+
+} catch (Exception e) {
+    System.out.println("Server Error!");
+    System.out.println(e.getMessage());
+}
+
+        Scanner sc = new Scanner(System.in);
+
+        System.out.println("================================");
+        System.out.println("      SATHANAMART BACKEND");
+        System.out.println("================================");
+
+        System.out.println("\n1. Create Account");
+        System.out.println("2. Login");
+
+        System.out.print("\nEnter your choice: ");
+        int choice = sc.nextInt();
+        sc.nextLine();
+
+
+        if (choice == 1) {
+
+            createAccount(sc);
+
+        } else if (choice == 2) {
+
+            login(sc);
+
+        } else {
+
+            System.out.println("Invalid Choice");
+        }
+
+        sc.close();
     }
 
 
     // CREATE ACCOUNT
-    static void register(HttpExchange exchange)
-            throws IOException {
+    static void createAccount(Scanner sc) {
 
-        if (!exchange.getRequestMethod()
-                .equalsIgnoreCase("POST")) {
+        System.out.println("\n--- CREATE ACCOUNT ---");
 
-            sendResponse(
-                    exchange,
-                    "Only POST request allowed."
-            );
+        System.out.print("Enter Name: ");
+        String name = sc.nextLine();
 
-            return;
-        }
+        System.out.print("Enter Email: ");
+        String email = sc.nextLine();
 
-        String data =
-                new String(
-                        exchange.getRequestBody().readAllBytes(),
-                        StandardCharsets.UTF_8
+        System.out.print("Enter Password: ");
+        String password = sc.nextLine();
+
+        System.out.print("Enter Role (Buyer/Seller): ");
+        String role = sc.nextLine();
+
+
+        String sql =
+                "INSERT INTO users (name, email, password, role) " +
+                "VALUES (?, ?, ?, ?)";
+
+
+        try {
+
+            Connection connection =
+                    DriverManager.getConnection(
+                            URL,
+                            USERNAME,
+                            PASSWORD
+                    );
+
+
+            PreparedStatement statement =
+                    connection.prepareStatement(sql);
+
+
+            statement.setString(1, name);
+            statement.setString(2, email);
+            statement.setString(3, password);
+            statement.setString(4, role);
+
+
+            int result =
+                    statement.executeUpdate();
+
+
+            if (result > 0) {
+
+                System.out.println(
+                        "\nAccount Created Successfully!"
                 );
 
-        Map<String, String> form =
-                parseData(data);
+                System.out.println(
+                        "User saved in MySQL database."
+                );
+            }
 
-        name = form.get("name");
-        email = form.get("email");
-        password = form.get("password");
-        role = form.get("role");
 
-        accountCreated = true;
+            statement.close();
+            connection.close();
 
-        sendResponse(
-                exchange,
-                "Account Created Successfully!"
-        );
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "\nAccount Creation Failed!"
+            );
+
+            System.out.println(e.getMessage());
+        }
     }
 
 
     // LOGIN
-    static void login(HttpExchange exchange)
-            throws IOException {
+    static void login(Scanner sc) {
 
-        if (!exchange.getRequestMethod()
-                .equalsIgnoreCase("POST")) {
+        System.out.println("\n--- LOGIN ---");
 
-            sendResponse(
-                    exchange,
-                    "Only POST request allowed."
-            );
+        System.out.print("Enter Email: ");
+        String email = sc.nextLine();
 
-            return;
-        }
+        System.out.print("Enter Password: ");
+        String password = sc.nextLine();
 
-        if (!accountCreated) {
+        System.out.print("Enter Role: ");
+        String role = sc.nextLine();
 
-            sendResponse(
-                    exchange,
-                    "Please create an account first."
-            );
 
-            return;
-        }
+        String sql =
+                "SELECT * FROM users " +
+                "WHERE email = ? AND password = ? AND role = ?";
 
-        String data =
-                new String(
-                        exchange.getRequestBody().readAllBytes(),
-                        StandardCharsets.UTF_8
+
+        try {
+
+            Connection connection =
+                    DriverManager.getConnection(
+                            URL,
+                            USERNAME,
+                            PASSWORD
+                    );
+
+
+            PreparedStatement statement =
+                    connection.prepareStatement(sql);
+
+
+            statement.setString(1, email);
+            statement.setString(2, password);
+            statement.setString(3, role);
+
+
+            ResultSet result =
+                    statement.executeQuery();
+
+
+            if (result.next()) {
+
+                System.out.println(
+                        "\nLogin Successfully!"
                 );
 
-        Map<String, String> form =
-                parseData(data);
-
-        String loginEmail =
-                form.get("email");
-
-        String loginPassword =
-                form.get("password");
-
-        String loginRole =
-                form.get("role");
+                System.out.println(
+                        "Welcome to SathanaMart"
+                );
 
 
-        // EMAIL CHECK
-        if (!loginEmail.equals(email)) {
+                if (role.equalsIgnoreCase("Seller")) {
 
-            sendResponse(
-                    exchange,
-                    "Invalid Email ID"
-            );
+                    System.out.println(
+                            "\n--- SELLER MODULE ---"
+                    );
 
-            return;
-        }
+                    System.out.println(
+                            "Seller Login Successful"
+                    );
 
+                } else if (
+                        role.equalsIgnoreCase("Buyer")) {
 
-        // PASSWORD CHECK
-        if (!loginPassword.equals(password)) {
+                    System.out.println(
+                            "\n--- BUYER MODULE ---"
+                    );
 
-            sendResponse(
-                    exchange,
-                    "Invalid Password"
-            );
+                    System.out.println(
+                            "Buyer Login Successful"
+                    );
 
-            return;
-        }
+                }
 
+            } else {
 
-        // ROLE CHECK
-        if (!loginRole.equalsIgnoreCase(role)) {
-
-            sendResponse(
-                    exchange,
-                    "Invalid Role"
-            );
-
-            return;
-        }
-
-
-        // SUCCESS
-        sendResponse(
-                exchange,
-                "Login Successfully! Welcome to SathanaMart"
-        );
-    }
-
-
-    // CONVERT FORM DATA
-    static Map<String, String> parseData(
-            String data) {
-
-        Map<String, String> result =
-                new HashMap<>();
-
-        String[] pairs = data.split("&");
-
-        for (String pair : pairs) {
-
-            String[] parts =
-                    pair.split("=", 2);
-
-            if (parts.length == 2) {
-
-                String key =
-                        URLDecoder.decode(
-                                parts[0],
-                                StandardCharsets.UTF_8
-                        );
-
-                String value =
-                        URLDecoder.decode(
-                                parts[1],
-                                StandardCharsets.UTF_8
-                        );
-
-                result.put(key, value);
+                System.out.println(
+                        "\nInvalid Email, Password or Role"
+                );
             }
+
+
+            result.close();
+            statement.close();
+            connection.close();
+
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "\nLogin Failed!"
+            );
+
+            System.out.println(e.getMessage());
         }
-
-        return result;
-    }
-
-
-    // SEND RESPONSE
-    static void sendResponse(
-            HttpExchange exchange,
-            String response)
-            throws IOException {
-
-        byte[] bytes =
-                response.getBytes(
-                        StandardCharsets.UTF_8
-                );
-
-        exchange.getResponseHeaders()
-                .set(
-                        "Content-Type",
-                        "text/plain; charset=UTF-8"
-                );
-
-        exchange.sendResponseHeaders(
-                200,
-                bytes.length
-        );
-
-        OutputStream output =
-                exchange.getResponseBody();
-
-        output.write(bytes);
-        output.close();
     }
 }

@@ -1,5 +1,3 @@
-// PRODUCT DATA
-
 let products = [
 
     {
@@ -45,15 +43,12 @@ let products = [
 ];
 
 
-// DISPLAY PRODUCTS
-
 function displayProducts() {
 
     let productList =
         document.getElementById("productList");
 
     productList.innerHTML = "";
-
 
     products.forEach(function(product, index) {
 
@@ -81,7 +76,6 @@ function displayProducts() {
                     Category: ${product.category}
                 </p>
 
-
                 <button
                     class="edit-button"
                     onclick="editProduct(${index})">
@@ -89,7 +83,6 @@ function displayProducts() {
                     Edit
 
                 </button>
-
 
                 <button
                     class="delete-button"
@@ -108,9 +101,7 @@ function displayProducts() {
 }
 
 
-// ADD PRODUCT
-
-function addProduct() {
+async function addProduct() {
 
     let name =
         document.getElementById("productName").value.trim();
@@ -141,60 +132,104 @@ function addProduct() {
     }
 
 
-    let icon = "📦";
+    try {
+
+        let data = new URLSearchParams();
+
+        data.append("name", name);
+        data.append("price", price);
+        data.append("stock", stock);
+        data.append("category", category);
 
 
-    if (category === "Mobile") {
-        icon = "📱";
+        let response = await fetch(
+            "http://localhost:8080/products",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "application/x-www-form-urlencoded"
+                },
+                body: data.toString()
+            }
+        );
+
+
+        let result = await response.text();
+
+
+        if (response.ok) {
+
+            let icon = "📦";
+
+
+            if (category === "Mobile") {
+                icon = "📱";
+            }
+
+            else if (category === "Accessories") {
+                icon = "🎧";
+            }
+
+            else if (category === "Electronics") {
+                icon = "💻";
+            }
+
+
+            products.push({
+
+                name: name,
+
+                price: Number(price),
+
+                stock: Number(stock),
+
+                category: category,
+
+                icon: icon
+
+            });
+
+
+            displayProducts();
+
+
+            document.getElementById("productName").value = "";
+
+            document.getElementById("productPrice").value = "";
+
+            document.getElementById("productStock").value = "";
+
+            document.getElementById("productCategory").value = "";
+
+
+            showMessage(
+                result,
+                "success"
+            );
+
+        } else {
+
+            showMessage(
+                "Product addition failed.",
+                "error"
+            );
+
+        }
+
+    } catch (error) {
+
+        console.log(error);
+
+        showMessage(
+            "Unable to connect to Java backend.",
+            "error"
+        );
+
     }
-
-    else if (category === "Accessories") {
-        icon = "🎧";
-    }
-
-    else if (category === "Electronics") {
-        icon = "💻";
-    }
-
-
-    products.push({
-
-        name: name,
-
-        price: Number(price),
-
-        stock: Number(stock),
-
-        category: category,
-
-        icon: icon
-
-    });
-
-
-    displayProducts();
-
-
-    // Clear fields
-
-    document.getElementById("productName").value = "";
-
-    document.getElementById("productPrice").value = "";
-
-    document.getElementById("productStock").value = "";
-
-    document.getElementById("productCategory").value = "";
-
-
-    showMessage(
-        "Product Added Successfully!",
-        "success"
-    );
 
 }
 
-
-// EDIT PRODUCT
 
 function editProduct(index) {
 
@@ -258,8 +293,6 @@ function editProduct(index) {
 }
 
 
-// DELETE PRODUCT
-
 function deleteProduct(index) {
 
     let product =
@@ -293,8 +326,6 @@ function deleteProduct(index) {
 }
 
 
-// MESSAGE
-
 function showMessage(text, type) {
 
     let message =
@@ -307,8 +338,6 @@ function showMessage(text, type) {
 }
 
 
-// BACK TO LOGIN
-
 function goBack() {
 
     window.location.href =
@@ -317,6 +346,66 @@ function goBack() {
 }
 
 
-// LOAD PRODUCTS
+async function loadProducts() {
 
-displayProducts();
+    try {
+
+        let response = await fetch(
+            "http://localhost:8080/products"
+        );
+
+
+        let data = await response.json();
+
+
+        products = data.map(function(product) {
+
+            let icon = "📦";
+
+
+            if (product.category === "Mobile") {
+                icon = "📱";
+            }
+
+            else if (product.category === "Accessories") {
+                icon = "🎧";
+            }
+
+            else if (product.category === "Electronics") {
+                icon = "💻";
+            }
+
+
+            return {
+
+                id: product.id,
+
+                name: product.name,
+
+                price: product.price,
+
+                stock: product.stock,
+
+                category: product.category,
+
+                icon: icon
+
+            };
+
+        });
+
+
+        displayProducts();
+
+    } catch (error) {
+
+        console.log(error);
+
+        displayProducts();
+
+    }
+
+}
+
+
+loadProducts();
