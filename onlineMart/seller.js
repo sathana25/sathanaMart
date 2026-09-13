@@ -231,7 +231,7 @@ async function addProduct() {
 }
 
 
-function editProduct(index) {
+async function editProduct(index) {
 
     let product = products[index];
 
@@ -243,7 +243,7 @@ function editProduct(index) {
         );
 
 
-    if (newName === null) {
+    if (newName === null || newName.trim() === "") {
         return;
     }
 
@@ -255,7 +255,7 @@ function editProduct(index) {
         );
 
 
-    if (newPrice === null) {
+    if (newPrice === null || newPrice.trim() === "") {
         return;
     }
 
@@ -267,33 +267,76 @@ function editProduct(index) {
         );
 
 
-    if (newStock === null) {
+    if (newStock === null || newStock.trim() === "") {
         return;
     }
 
 
-    products[index].name =
-        newName;
+    let data = new URLSearchParams();
 
-    products[index].price =
-        Number(newPrice);
+    data.append("id", product.id);
 
-    products[index].stock =
-        Number(newStock);
+    data.append("name", newName);
+
+    data.append("price", newPrice);
+
+    data.append("stock", newStock);
+
+    data.append("category", product.category);
 
 
-    displayProducts();
+    try {
+
+        let response = await fetch(
+            "http://localhost:8080/products",
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type":
+                        "application/x-www-form-urlencoded"
+                },
+                body: data.toString()
+            }
+        );
 
 
-    showMessage(
-        "Product Updated Successfully!",
-        "success"
-    );
+        let result =
+            await response.text();
+
+
+        if (response.ok) {
+
+            showMessage(
+                result,
+                "success"
+            );
+
+            loadProducts();
+
+        } else {
+
+            showMessage(
+                "Product update failed.",
+                "error"
+            );
+
+        }
+
+    } catch (error) {
+
+        console.log(error);
+
+        showMessage(
+            "Unable to connect to Java backend.",
+            "error"
+        );
+
+    }
 
 }
 
 
-function deleteProduct(index) {
+async function deleteProduct(index) {
 
     let product =
         products[index];
@@ -312,16 +355,58 @@ function deleteProduct(index) {
     }
 
 
-    products.splice(index, 1);
+    let data = new URLSearchParams();
+
+    data.append("id", product.id);
 
 
-    displayProducts();
+    try {
+
+        let response = await fetch(
+            "http://localhost:8080/products",
+            {
+                method: "DELETE",
+                headers: {
+                    "Content-Type":
+                        "application/x-www-form-urlencoded"
+                },
+                body: data.toString()
+            }
+        );
 
 
-    showMessage(
-        "Product Deleted Successfully!",
-        "success"
-    );
+        let result =
+            await response.text();
+
+
+        if (response.ok) {
+
+            showMessage(
+                result,
+                "success"
+            );
+
+            loadProducts();
+
+        } else {
+
+            showMessage(
+                "Product deletion failed.",
+                "error"
+            );
+
+        }
+
+    } catch (error) {
+
+        console.log(error);
+
+        showMessage(
+            "Unable to connect to Java backend.",
+            "error"
+        );
+
+    }
 
 }
 
@@ -355,44 +440,46 @@ async function loadProducts() {
         );
 
 
-        let data = await response.json();
+        let data =
+            await response.json();
 
 
-        products = data.map(function(product) {
+        products =
+            data.map(function(product) {
 
-            let icon = "📦";
-
-
-            if (product.category === "Mobile") {
-                icon = "📱";
-            }
-
-            else if (product.category === "Accessories") {
-                icon = "🎧";
-            }
-
-            else if (product.category === "Electronics") {
-                icon = "💻";
-            }
+                let icon = "📦";
 
 
-            return {
+                if (product.category === "Mobile") {
+                    icon = "📱";
+                }
 
-                id: product.id,
+                else if (product.category === "Accessories") {
+                    icon = "🎧";
+                }
 
-                name: product.name,
+                else if (product.category === "Electronics") {
+                    icon = "💻";
+                }
 
-                price: product.price,
 
-                stock: product.stock,
+                return {
 
-                category: product.category,
+                    id: product.id,
 
-                icon: icon
+                    name: product.name,
 
-            };
+                    price: product.price,
 
-        });
+                    stock: product.stock,
+
+                    category: product.category,
+
+                    icon: icon
+
+                };
+
+            });
 
 
         displayProducts();
