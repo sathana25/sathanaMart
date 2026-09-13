@@ -1,0 +1,30 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 30px;
+    background-color: #f5f5f5;
+}
+
+h1 {
+    text-align: center;
+}
+
+h2 {
+    text-align: center;
+}
+
+#productList {
+    display: grid;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+#productList div {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+#productList h3 {
+    margin-top: 0;
+}

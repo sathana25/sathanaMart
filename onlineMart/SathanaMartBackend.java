@@ -909,6 +909,41 @@ public class SathanaMartBackend {
                 }
 
             });
+            server.createContext("/buyer.html", exchange -> {
+    java.nio.file.Path file = java.nio.file.Paths.get("buyer.html");
+    byte[] content = java.nio.file.Files.readAllBytes(file);
+
+    exchange.getResponseHeaders().set("Content-Type", "text/html");
+    exchange.sendResponseHeaders(200, content.length);
+
+    java.io.OutputStream output = exchange.getResponseBody();
+    output.write(content);
+    output.close();
+});
+
+server.createContext("/buyer.js", exchange -> {
+    java.nio.file.Path file = java.nio.file.Paths.get("buyer.js");
+    byte[] content = java.nio.file.Files.readAllBytes(file);
+
+    exchange.getResponseHeaders().set("Content-Type", "application/javascript");
+    exchange.sendResponseHeaders(200, content.length);
+
+    java.io.OutputStream output = exchange.getResponseBody();
+    output.write(content);
+    output.close();
+});
+
+server.createContext("/buyer.css", exchange -> {
+    java.nio.file.Path file = java.nio.file.Paths.get("buyer.css");
+    byte[] content = java.nio.file.Files.readAllBytes(file);
+
+    exchange.getResponseHeaders().set("Content-Type", "text/css");
+    exchange.sendResponseHeaders(200, content.length);
+
+    java.io.OutputStream output = exchange.getResponseBody();
+    output.write(content);
+    output.close();
+});
 
 
             server.start();
