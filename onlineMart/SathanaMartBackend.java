@@ -1152,40 +1152,67 @@ public class SathanaMartBackend {
 
 
             server.createContext("/buyer.html", exchange -> {
-    java.nio.file.Path file = java.nio.file.Paths.get("buyer.html");
-    byte[] content = java.nio.file.Files.readAllBytes(file);
+              java.nio.file.Path file = java.nio.file.Paths.get("buyer.html");
+              byte[] content = java.nio.file.Files.readAllBytes(file);
 
-    exchange.getResponseHeaders().set("Content-Type", "text/html");
-    exchange.sendResponseHeaders(200, content.length);
+              exchange.getResponseHeaders().set("Content-Type", "text/html");
+              exchange.sendResponseHeaders(200, content.length);
 
-    java.io.OutputStream output = exchange.getResponseBody();
-    output.write(content);
-    output.close();
-});
+              java.io.OutputStream output = exchange.getResponseBody();
+              output.write(content);
+              output.close();
+           });
 
-server.createContext("/buyer.js", exchange -> {
-    java.nio.file.Path file = java.nio.file.Paths.get("buyer.js");
-    byte[] content = java.nio.file.Files.readAllBytes(file);
+           server.createContext("/buyer.js", exchange -> {
+             java.nio.file.Path file = java.nio.file.Paths.get("buyer.js");
+             byte[] content = java.nio.file.Files.readAllBytes(file);
 
-    exchange.getResponseHeaders().set("Content-Type", "application/javascript");
-    exchange.sendResponseHeaders(200, content.length);
+             exchange.getResponseHeaders().set("Content-Type", "application/javascript");
+             exchange.sendResponseHeaders(200, content.length);
 
-    java.io.OutputStream output = exchange.getResponseBody();
-    output.write(content);
-    output.close();
-});
+             java.io.OutputStream output = exchange.getResponseBody();
+             output.write(content);
+             output.close();
+           });
 
-server.createContext("/buyer.css", exchange -> {
-    java.nio.file.Path file = java.nio.file.Paths.get("buyer.css");
-    byte[] content = java.nio.file.Files.readAllBytes(file);
+           server.createContext("/buyer.css", exchange -> {
+             java.nio.file.Path file = java.nio.file.Paths.get("buyer.css");
+             byte[] content = java.nio.file.Files.readAllBytes(file);
 
-    exchange.getResponseHeaders().set("Content-Type", "text/css");
-    exchange.sendResponseHeaders(200, content.length);
+             exchange.getResponseHeaders().set("Content-Type", "text/css");
+             exchange.sendResponseHeaders(200, content.length);
 
-    java.io.OutputStream output = exchange.getResponseBody();
-    output.write(content);
-    output.close();
-});
+             java.io.OutputStream output = exchange.getResponseBody();
+             output.write(content);
+             output.close();
+          });
+ 
+          server.createContext("/admin.html", exchange -> {
+                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                   serveFile(exchange, "admin.html", "text/html");
+                } else {
+                   exchange.sendResponseHeaders(405, -1);
+                   exchange.close();
+                }
+          });
+
+           server.createContext("/admin.css", exchange -> {
+                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                   serveFile(exchange, "admin.css", "text/css");
+                } else {
+                   exchange.sendResponseHeaders(405, -1);
+                   exchange.close();
+                }
+           });
+
+           server.createContext("/admin.js", exchange -> {
+                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    serveFile(exchange, "admin.js", "application/javascript");
+                } else {
+                    exchange.sendResponseHeaders(405, -1);
+                    exchange.close();
+                }
+           });
 
 
             server.start();
@@ -1463,4 +1490,26 @@ server.createContext("/buyer.css", exchange -> {
             );
         }
     }
+                static void serveFile(
+                     com.sun.net.httpserver.HttpExchange exchange,
+                     String fileName,
+                     String contentType) throws java.io.IOException {
+
+                     java.nio.file.Path path =
+                     java.nio.file.Paths.get(fileName);
+
+                     byte[] data = java.nio.file.Files.readAllBytes(path);
+
+                        exchange.getResponseHeaders().set(
+                           "Content-Type",
+                             contentType
+                        );
+
+                         exchange.sendResponseHeaders(200, data.length);
+
+                         exchange.getResponseBody().write(data);
+
+                         exchange.close();
+                }
+        
 }
