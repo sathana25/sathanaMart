@@ -120,6 +120,10 @@ async function login() {
             }
 
             if (role === "Buyer") {
+                setTimeout(function () {
+                    window.location.href = "buyer.html";
+                }, 1000);
+
                 return;
             }
 
@@ -133,7 +137,10 @@ async function login() {
 
     } catch (error) {
         console.log(error);
-        showMessage("Unable to connect to Java backend.", "error");
+        showMessage(
+            "Unable to connect to Java backend.",
+            "error"
+        );
     }
 }
 

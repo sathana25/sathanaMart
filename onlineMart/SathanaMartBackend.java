@@ -909,6 +909,143 @@ public class SathanaMartBackend {
                 }
 
             });
+            server.createContext("/orders", exchange -> {
+
+                if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+
+                    String requestData =
+                            new String(
+                                    exchange.getRequestBody().readAllBytes()
+                            );
+
+                    String[] values = requestData.split("&");
+
+                    String productName = "";
+                    String price = "";
+                    String quantity = "";
+                    String total = "";
+
+                    for (String value : values) {
+
+                        String[] pair = value.split("=", 2);
+
+                        if (pair.length < 2) {
+                            continue;
+                        }
+
+                        String key = pair[0];
+
+                        String data =
+                                java.net.URLDecoder.decode(
+                                        pair[1],
+                                        "UTF-8"
+                                );
+
+                        if (key.equals("product_name")) {
+                            productName = data;
+                        }
+
+                        if (key.equals("price")) {
+                            price = data;
+                        }
+
+                        if (key.equals("quantity")) {
+                            quantity = data;
+                        }
+
+                        if (key.equals("total")) {
+                            total = data;
+                        }
+                    }
+
+                    String sql =
+                            "INSERT INTO orders " +
+                            "(product_name, price, quantity, total) " +
+                            "VALUES (?, ?, ?, ?)";
+
+                    String response;
+
+                    try {
+
+                        Connection connection =
+                                DriverManager.getConnection(
+                                        URL,
+                                        USERNAME,
+                                        PASSWORD
+                                );
+
+                        PreparedStatement statement =
+                                connection.prepareStatement(sql);
+
+                        statement.setString(1, productName);
+
+                        statement.setDouble(
+                                2,
+                                Double.parseDouble(price)
+                        );
+
+                        statement.setInt(
+                                3,
+                                Integer.parseInt(quantity)
+                        );
+
+                        statement.setDouble(
+                                4,
+                                Double.parseDouble(total)
+                        );
+
+                        int result =
+                                statement.executeUpdate();
+
+                        if (result > 0) {
+
+                            response =
+                                    "Order Placed Successfully!";
+
+                        } else {
+
+                            response =
+                                    "Order Placement Failed!";
+                        }
+
+                        statement.close();
+                        connection.close();
+
+                    } catch (Exception e) {
+
+                        response =
+                                "Order Placement Failed!";
+                    }
+
+                    exchange.getResponseHeaders().set(
+                            "Content-Type",
+                            "text/plain"
+                    );
+
+                    exchange.sendResponseHeaders(
+                            200,
+                            response.length()
+                    );
+
+                    java.io.OutputStream output =
+                            exchange.getResponseBody();
+
+                    output.write(response.getBytes());
+                    output.close();
+
+                } else {
+
+                    exchange.sendResponseHeaders(
+                            405,
+                            -1
+                    );
+
+                    exchange.close();
+                }
+
+            });
+
+
             server.createContext("/buyer.html", exchange -> {
     java.nio.file.Path file = java.nio.file.Paths.get("buyer.html");
     byte[] content = java.nio.file.Files.readAllBytes(file);
