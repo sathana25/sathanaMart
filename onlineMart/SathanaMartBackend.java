@@ -911,7 +911,9 @@ public class SathanaMartBackend {
             });
             server.createContext("/orders", exchange -> {
 
-                if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                String method = exchange.getRequestMethod();
+
+                if ("POST".equalsIgnoreCase(method)) {
 
                     String requestData =
                             new String(
@@ -998,23 +1000,16 @@ public class SathanaMartBackend {
                                 statement.executeUpdate();
 
                         if (result > 0) {
-
-                            response =
-                                    "Order Placed Successfully!";
-
+                            response = "Order Placed Successfully!";
                         } else {
-
-                            response =
-                                    "Order Placement Failed!";
+                            response = "Order Placement Failed!";
                         }
 
                         statement.close();
                         connection.close();
 
                     } catch (Exception e) {
-
-                        response =
-                                "Order Placement Failed!";
+                        response = "Order Placement Failed!";
                     }
 
                     exchange.getResponseHeaders().set(
@@ -1032,6 +1027,116 @@ public class SathanaMartBackend {
 
                     output.write(response.getBytes());
                     output.close();
+
+                } else if ("GET".equalsIgnoreCase(method)) {
+
+                    StringBuilder json =
+                            new StringBuilder();
+
+                    json.append("[");
+
+                    try {
+
+                        Connection connection =
+                                DriverManager.getConnection(
+                                        URL,
+                                        USERNAME,
+                                        PASSWORD
+                                );
+
+                        String sql =
+                                "SELECT id, product_name, price, quantity, total, status " +
+                                "FROM orders ORDER BY id DESC";
+
+                        PreparedStatement statement =
+                                connection.prepareStatement(sql);
+
+                        ResultSet resultSet =
+                                statement.executeQuery();
+
+                        boolean first = true;
+
+                        while (resultSet.next()) {
+
+                            if (!first) {
+                                json.append(",");
+                            }
+
+                            json.append("{");
+
+                            json.append("\"id\":")
+                                    .append(resultSet.getInt("id"))
+                                    .append(",");
+
+                            json.append("\"product_name\":\"")
+                                    .append(resultSet.getString("product_name"))
+                                    .append("\",");
+
+                            json.append("\"price\":")
+                                    .append(resultSet.getDouble("price"))
+                                    .append(",");
+
+                            json.append("\"quantity\":")
+                                    .append(resultSet.getInt("quantity"))
+                                    .append(",");
+
+                            json.append("\"total\":")
+                                    .append(resultSet.getDouble("total"))
+                                    .append(",");
+
+                            json.append("\"status\":\"")
+                                    .append(resultSet.getString("status"))
+                                    .append("\"");
+
+                            json.append("}");
+
+                            first = false;
+                        }
+
+                        json.append("]");
+
+                        resultSet.close();
+                        statement.close();
+                        connection.close();
+
+                        String response = json.toString();
+
+                        exchange.getResponseHeaders().set(
+                                "Content-Type",
+                                "application/json"
+                        );
+
+                        exchange.sendResponseHeaders(
+                                200,
+                                response.length()
+                        );
+
+                        java.io.OutputStream output =
+                                exchange.getResponseBody();
+
+                        output.write(response.getBytes());
+                        output.close();
+
+                    } catch (Exception e) {
+
+                        String response = "[]";
+
+                        exchange.getResponseHeaders().set(
+                                "Content-Type",
+                                "application/json"
+                        );
+
+                        exchange.sendResponseHeaders(
+                                500,
+                                response.length()
+                        );
+
+                        java.io.OutputStream output =
+                                exchange.getResponseBody();
+
+                        output.write(response.getBytes());
+                        output.close();
+                    }
 
                 } else {
 

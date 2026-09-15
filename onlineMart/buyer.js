@@ -141,5 +141,40 @@ function placeOrder() {
             alert("Order Placement Failed!");
         });
 }
+function loadOrders() {
 
+    fetch("/orders")
+        .then(response => response.json())
+        .then(orders => {
+
+            let orderList = document.getElementById("orderList");
+
+            orderList.innerHTML = "";
+
+            if (orders.length === 0) {
+                orderList.innerHTML = "<p>No orders found.</p>";
+                return;
+            }
+
+            orders.forEach(function(order) {
+
+                orderList.innerHTML += `
+                    <div>
+                        <h3>Order ID: ${order.id}</h3>
+                        <p>Product: ${order.product_name}</p>
+                        <p>Price: ₹${order.price}</p>
+                        <p>Quantity: ${order.quantity}</p>
+                        <p>Total: ₹${order.total}</p>
+                        <p>Status: ${order.status}</p>
+                    </div>
+                    <hr>
+                `;
+            });
+
+        })
+        .catch(error => {
+            console.log("Error loading orders:", error);
+        });
+}
 loadProducts();
+loadOrders();
