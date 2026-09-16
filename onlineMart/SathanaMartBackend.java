@@ -1028,7 +1028,106 @@ public class SathanaMartBackend {
                     output.write(response.getBytes());
                     output.close();
 
-                } else if ("GET".equalsIgnoreCase(method)) {
+
+                } else if ("PUT".equalsIgnoreCase(method)) {
+
+                    String requestData =
+                            new String(
+                                    exchange.getRequestBody().readAllBytes()
+                            );
+
+                    String[] values = requestData.split("&");
+
+                    String id = "";
+                    String status = "";
+
+                    for (String value : values) {
+
+                        String[] pair = value.split("=", 2);
+
+                        if (pair.length < 2) {
+                            continue;
+                        }
+
+                        String key = pair[0];
+
+                        String data =
+                                java.net.URLDecoder.decode(
+                                        pair[1],
+                                        "UTF-8"
+                                );
+
+                        if (key.equals("id")) {
+                            id = data;
+                        }
+
+                        if (key.equals("status")) {
+                            status = data;
+                        }
+                    }
+
+                    String sql =
+                            "UPDATE orders SET status = ? WHERE id = ?";
+
+                    String response;
+
+                    try {
+
+                        Connection connection =
+                                DriverManager.getConnection(
+                                        URL,
+                                        USERNAME,
+                                        PASSWORD
+                                );
+
+                        PreparedStatement statement =
+                                connection.prepareStatement(sql);
+
+                        statement.setString(1, status);
+
+                        statement.setInt(
+                                2,
+                                Integer.parseInt(id)
+                        );
+
+                        int result =
+                                statement.executeUpdate();
+
+                        if (result > 0) {
+                            response =
+                                    "Order Status Updated Successfully!";
+                        } else {
+                            response =
+                                    "Order Status Update Failed!";
+                        }
+
+                        statement.close();
+                        connection.close();
+
+                    } catch (Exception e) {
+
+                        response =
+                                "Order Status Update Failed!";
+                    }
+
+                    exchange.getResponseHeaders().set(
+                            "Content-Type",
+                            "text/plain"
+                    );
+
+                    exchange.sendResponseHeaders(
+                            200,
+                            response.length()
+                    );
+
+                    java.io.OutputStream output =
+                            exchange.getResponseBody();
+
+                    output.write(response.getBytes());
+
+                    output.close();
+                }
+                else if ("GET".equalsIgnoreCase(method)) {
 
                     StringBuilder json =
                             new StringBuilder();
