@@ -495,4 +495,109 @@ async function loadProducts() {
 }
 
 
+// ==============================
+// LOAD ORDERS
+// ==============================
+
+async function loadOrders() {
+
+    try {
+
+        let response = await fetch(
+            "http://localhost:8080/orders"
+        );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Unable to load orders"
+            );
+
+        }
+
+
+        let orders =
+            await response.json();
+
+
+        let orderList =
+            document.getElementById("orderList");
+
+
+        orderList.innerHTML = "";
+
+
+        if (orders.length === 0) {
+
+            orderList.innerHTML =
+                "<p>No orders received.</p>";
+
+            return;
+        }
+
+
+        orders.forEach(function(order) {
+
+            orderList.innerHTML += `
+
+                <div class="product">
+
+                    <h3>
+                        Order ID: ${order.id}
+                    </h3>
+
+                    <p>
+                        Product:
+                        ${order.product_name}
+                    </p>
+
+                    <p>
+                        Price:
+                        ₹${order.price}
+                    </p>
+
+                    <p>
+                        Quantity:
+                        ${order.quantity}
+                    </p>
+
+                    <p>
+                        Total:
+                        ₹${order.total}
+                    </p>
+
+                    <p>
+                        Status:
+                        ${order.status}
+                    </p>
+
+                </div>
+
+            `;
+
+        });
+
+    } catch (error) {
+
+        console.log(
+            "Order Error:",
+            error
+        );
+
+
+        let orderList =
+            document.getElementById("orderList");
+
+
+        orderList.innerHTML =
+            "<p>Unable to load orders.</p>";
+
+    }
+
+}
+
+
 loadProducts();
+
+loadOrders();
