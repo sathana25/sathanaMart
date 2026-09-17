@@ -1286,7 +1286,120 @@ public class SathanaMartBackend {
              output.close();
           });
  
-          server.createContext("/admin.html", exchange -> {
+          server.createContext("/users", exchange -> {
+
+                String method = exchange.getRequestMethod();
+
+                if ("GET".equalsIgnoreCase(method)) {
+
+                    StringBuilder json = new StringBuilder();
+                    json.append("[");
+
+                    try {
+
+                        Connection connection =
+                                DriverManager.getConnection(
+                                        URL,
+                                        USERNAME,
+                                        PASSWORD
+                                );
+
+                        String sql =
+                                "SELECT id, name, email, role " +
+                                "FROM users ORDER BY id DESC";
+
+                        PreparedStatement statement =
+                                connection.prepareStatement(sql);
+
+                        ResultSet resultSet =
+                                statement.executeQuery();
+
+                        boolean first = true;
+
+                        while (resultSet.next()) {
+
+                            if (!first) {
+                                json.append(",");
+                            }
+
+                            json.append("{");
+
+                            json.append("\"id\":")
+                                    .append(resultSet.getInt("id"))
+                                    .append(",");
+
+                            json.append("\"name\":\"")
+                                    .append(resultSet.getString("name"))
+                                    .append("\",");
+
+                            json.append("\"email\":\"")
+                                    .append(resultSet.getString("email"))
+                                    .append("\",");
+
+                            json.append("\"role\":\"")
+                                    .append(resultSet.getString("role"))
+                                    .append("\"");
+
+                            json.append("}");
+
+                            first = false;
+                        }
+
+                        json.append("]");
+
+                        resultSet.close();
+                        statement.close();
+                        connection.close();
+
+                        String response = json.toString();
+
+                        exchange.getResponseHeaders().set(
+                                "Content-Type",
+                                "application/json"
+                        );
+
+                        exchange.sendResponseHeaders(
+                                200,
+                                response.length()
+                        );
+
+                        java.io.OutputStream output =
+                                exchange.getResponseBody();
+
+                        output.write(response.getBytes());
+                        output.close();
+
+                    } catch (Exception e) {
+
+                        String response = "[]";
+
+                        exchange.getResponseHeaders().set(
+                                "Content-Type",
+                                "application/json"
+                        );
+
+                        exchange.sendResponseHeaders(
+                                500,
+                                response.length()
+                        );
+
+                        java.io.OutputStream output =
+                                exchange.getResponseBody();
+
+                        output.write(response.getBytes());
+                        output.close();
+                    }
+
+                } else {
+
+                    exchange.sendResponseHeaders(405, -1);
+                    exchange.close();
+                }
+
+            });
+
+
+            server.createContext("/admin.html", exchange -> {
                 if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
                    serveFile(exchange, "admin.html", "text/html");
                 } else {

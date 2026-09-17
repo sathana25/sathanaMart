@@ -16,15 +16,10 @@ function loadProducts() {
 
                 productList.innerHTML += `
                     <div class="product">
-
                         <h3>${product.name}</h3>
-
                         <p>Price: ₹${product.price}</p>
-
                         <p>Stock: ${product.stock}</p>
-
                         <p>Category: ${product.category}</p>
-
                     </div>
                 `;
             });
@@ -65,55 +60,32 @@ function loadOrders() {
                 orderList.innerHTML += `
                     <div class="order">
 
-                        <h3>Order ID: ${order.id}</h3>
+                        <h3>
+                            Order ID: ${order.id}
+                        </h3>
 
-                        <p>Product: ${order.product_name}</p>
+                        <p>
+                            Product: ${order.product_name}
+                        </p>
 
-                        <p>Price: ₹${order.price}</p>
+                        <p>
+                            Price: ₹${order.price}
+                        </p>
 
-                        <p>Quantity: ${order.quantity}</p>
+                        <p>
+                            Quantity: ${order.quantity}
+                        </p>
 
-                        <p>Total: ₹${order.total}</p>
+                        <p>
+                            Total: ₹${order.total}
+                        </p>
 
-                        <p>Current Status: ${order.status}</p>
-
-                        <select id="status-${order.id}">
-
-                            <option value="Placed">
-                                Placed
-                            </option>
-
-                            <option value="Processing">
-                                Processing
-                            </option>
-
-                            <option value="Shipped">
-                                Shipped
-                            </option>
-
-                            <option value="Delivered">
-                                Delivered
-                            </option>
-
-                            <option value="Cancelled">
-                                Cancelled
-                            </option>
-
-                        </select>
-
-                        <button onclick="updateOrderStatus(${order.id})">
-                            Update Status
-                        </button>
+                        <p>
+                            Status: ${order.status}
+                        </p>
 
                     </div>
-
-                    <hr>
                 `;
-
-                document.getElementById(
-                    "status-" + order.id
-                ).value = order.status;
-
             });
 
         })
@@ -125,45 +97,62 @@ function loadOrders() {
 }
 
 
-function updateOrderStatus(orderId) {
+function loadUsers() {
 
-    let status =
-        document.getElementById(
-            "status-" + orderId
-        ).value;
+    fetch("/users")
+        .then(response => response.json())
+        .then(users => {
 
-    let data =
-        "id=" + orderId +
-        "&status=" + encodeURIComponent(status);
+            document.getElementById("userCount").innerText =
+                users.length;
 
-    fetch("/orders", {
-        method: "PUT",
-        headers: {
-            "Content-Type":
-                "application/x-www-form-urlencoded"
-        },
-        body: data
-    })
-    .then(response => response.text())
-    .then(result => {
+            let userList =
+                document.getElementById("userList");
 
-        alert(result);
+            userList.innerHTML = "";
 
-        loadOrders();
+            if (users.length === 0) {
 
-    })
-    .catch(error => {
+                userList.innerHTML =
+                    "<p>No users found.</p>";
 
-        console.log(
-            "Status Update Error:",
-            error
-        );
+                return;
+            }
 
-        alert("Status Update Failed!");
+            users.forEach(function(user) {
 
-    });
+                userList.innerHTML += `
+                    <div class="user">
+
+                        <h3>
+                            User ID: ${user.id}
+                        </h3>
+
+                        <p>
+                            Name: ${user.name}
+                        </p>
+
+                        <p>
+                            Email: ${user.email}
+                        </p>
+
+                        <p>
+                            Role: ${user.role}
+                        </p>
+
+                    </div>
+                `;
+            });
+
+        })
+        .catch(error => {
+
+            console.log("User Error:", error);
+
+        });
 }
 
 
 loadProducts();
 loadOrders();
+loadUsers();
