@@ -248,16 +248,29 @@ function displayCart() {
 }
 function increaseQuantity(id) {
 
-    let product = cart.find(function(product) {
+    let cartProduct = cart.find(function(product) {
         return product.id === id;
     });
 
-    if (product) {
-        product.quantity++;
-        displayCart();
+    let originalProduct = allProducts.find(function(product) {
+        return product.id === id;
+    });
+
+    if (cartProduct && originalProduct) {
+
+        if (cartProduct.quantity < originalProduct.stock) {
+
+            cartProduct.quantity++;
+
+            displayCart();
+
+        } else {
+
+            alert("Stock limit reached!");
+
+        }
     }
 }
-
 
 function decreaseQuantity(id) {
 

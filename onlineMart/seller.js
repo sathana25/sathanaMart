@@ -567,10 +567,31 @@ async function loadOrders() {
                         ₹${order.total}
                     </p>
 
-                    <p>
-                        Status:
-                        ${order.status}
+                    <p>            
+                       Status:
+                      <select onchange="updateOrderStatus(${order.id}, this.value)">
+                        <option value="Placed" ${order.status === "Placed" ? "selected" : ""}>
+                           Placed
+                        </option>
+
+                        <option value="Processing" ${order.status === "Processing" ? "selected" : ""}>
+                          Processing
+                        </option>
+
+                        <option value="Shipped" ${order.status === "Shipped" ? "selected" : ""}>
+                           Shipped
+                        </option>
+
+                        <option value="Delivered" ${order.status === "Delivered" ? "selected" : ""}>
+                           Delivered
+                        </option>
+
+                        <option value="Cancelled" ${order.status === "Cancelled" ? "selected" : ""}>
+                          Cancelled
+                       </option>
+                       </select>
                     </p>
+                
 
                 </div>
 
@@ -596,6 +617,61 @@ async function loadOrders() {
     }
 
 }
+async function updateOrderStatus(orderId, status) {
+
+    let data = new URLSearchParams();
+
+    data.append("id", orderId);
+    data.append("status", status);
+
+    try {
+
+        let response = await fetch(
+            "http://localhost:8080/orders",
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type":
+                        "application/x-www-form-urlencoded"
+                },
+                body: data.toString()
+            }
+        );
+
+        let result = await response.text();
+
+        if (response.ok) {
+
+            showMessage(
+                result,
+                "success"
+            );
+
+            loadOrders();
+
+        } else {
+
+            showMessage(
+                "Order status update failed.",
+                "error"
+            );
+
+        }
+
+    } catch (error) {
+
+        console.log(
+            "Order Status Error:",
+            error
+        );
+
+        showMessage(
+            "Unable to connect to Java backend.",
+            "error"
+        );
+    }
+}
+
 
 
 loadProducts();
