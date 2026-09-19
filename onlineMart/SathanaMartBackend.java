@@ -2,7 +2,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Scanner;
 import java.net.InetSocketAddress;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -1585,20 +1584,6 @@ HttpServer server = HttpServer.create(
             System.out.println(
                     "Server is running..."
             );
-
-
-            // Keep server running
-
-            Scanner sc =
-                    new Scanner(System.in);
-
-            System.out.println(
-                    "Press ENTER to stop the server."
-            );
-
-            sc.nextLine();
-
-            sc.close();
 
 
         } catch (Exception e) {
