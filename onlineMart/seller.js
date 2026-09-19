@@ -43,9 +43,11 @@ function displayProducts() {
 
             if (product.category === "Mobile") {
                 icon = "📱";
-            } else if (product.category === "Accessories") {
+            }
+            else if (product.category === "Accessories") {
                 icon = "🎧";
-            } else if (product.category === "Electronics") {
+            }
+            else if (product.category === "Electronics") {
                 icon = "💻";
             }
 
@@ -55,7 +57,6 @@ function displayProducts() {
                 </div>
             `;
         }
-
 
         productList.innerHTML += `
 
@@ -73,15 +74,13 @@ function displayProducts() {
 
                 <button
                     class="edit-button"
-                    onclick="editProduct(${index})"
-                >
+                    onclick="editProduct(${index})">
                     Edit
                 </button>
 
                 <button
                     class="delete-button"
-                    onclick="deleteProduct(${index})"
-                >
+                    onclick="deleteProduct(${index})">
                     Delete
                 </button>
 
@@ -110,8 +109,11 @@ async function addProduct() {
     const category =
         document.getElementById("productCategory").value;
 
+    const imageInput =
+        document.getElementById("productImage");
+
     const imageFile =
-        document.getElementById("productImage").files[0];
+        imageInput ? imageInput.files[0] : null;
 
 
     if (
@@ -136,15 +138,17 @@ async function addProduct() {
 
 
         // Image is optional
+
         if (imageFile) {
 
             imageData =
                 await convertImageToBase64(imageFile);
-
         }
 
 
-        const data = new URLSearchParams();
+        const data =
+            new URLSearchParams();
+
 
         data.append("name", name);
         data.append("price", price);
@@ -173,6 +177,15 @@ async function addProduct() {
             await response.text();
 
 
+        // DEBUG
+
+        console.log(
+            "Add Product Response:",
+            response.status,
+            result
+        );
+
+
         if (response.ok) {
 
             showMessage(
@@ -185,31 +198,38 @@ async function addProduct() {
                 "productName"
             ).value = "";
 
+
             document.getElementById(
                 "productPrice"
             ).value = "";
+
 
             document.getElementById(
                 "productStock"
             ).value = "";
 
+
             document.getElementById(
                 "productCategory"
             ).value = "";
 
-            document.getElementById(
-                "productImage"
-            ).value = "";
+
+            if (imageInput) {
+
+                imageInput.value = "";
+            }
 
 
             await loadProducts();
 
-        } else {
+        }
+        else {
 
             console.log(
                 "Backend Error:",
                 result
             );
+
 
             showMessage(
                 "Product addition failed: " + result,
@@ -218,12 +238,14 @@ async function addProduct() {
         }
 
 
-    } catch (error) {
+    }
+    catch (error) {
 
         console.log(
             "Product Add Error:",
             error
         );
+
 
         showMessage(
             "Unable to connect to Java backend.",
@@ -245,15 +267,22 @@ function convertImageToBase64(file) {
             const reader =
                 new FileReader();
 
+
             reader.onload =
                 function() {
-                    resolve(reader.result);
+
+                    resolve(
+                        reader.result
+                    );
                 };
+
 
             reader.onerror =
                 function(error) {
+
                     reject(error);
                 };
+
 
             reader.readAsDataURL(file);
         }
@@ -282,6 +311,7 @@ async function editProduct(index) {
         newName === null ||
         newName.trim() === ""
     ) {
+
         return;
     }
 
@@ -297,6 +327,7 @@ async function editProduct(index) {
         newPrice === null ||
         newPrice.trim() === ""
     ) {
+
         return;
     }
 
@@ -312,6 +343,7 @@ async function editProduct(index) {
         newStock === null ||
         newStock.trim() === ""
     ) {
+
         return;
     }
 
@@ -320,12 +352,40 @@ async function editProduct(index) {
         new URLSearchParams();
 
 
-    data.append("id", product.id);
-    data.append("name", newName.trim());
-    data.append("price", newPrice);
-    data.append("stock", newStock);
-    data.append("category", product.category);
-    data.append("image", product.image || "");
+    data.append(
+        "id",
+        product.id
+    );
+
+
+    data.append(
+        "name",
+        newName.trim()
+    );
+
+
+    data.append(
+        "price",
+        newPrice
+    );
+
+
+    data.append(
+        "stock",
+        newStock
+    );
+
+
+    data.append(
+        "category",
+        product.category
+    );
+
+
+    data.append(
+        "image",
+        product.image || ""
+    );
 
 
     try {
@@ -350,6 +410,13 @@ async function editProduct(index) {
             await response.text();
 
 
+        console.log(
+            "Edit Product Response:",
+            response.status,
+            result
+        );
+
+
         if (response.ok) {
 
             showMessage(
@@ -357,9 +424,11 @@ async function editProduct(index) {
                 "success"
             );
 
+
             await loadProducts();
 
-        } else {
+        }
+        else {
 
             showMessage(
                 "Product update failed: " + result,
@@ -368,12 +437,14 @@ async function editProduct(index) {
         }
 
 
-    } catch (error) {
+    }
+    catch (error) {
 
         console.log(
             "Edit Product Error:",
             error
         );
+
 
         showMessage(
             "Unable to connect to Java backend.",
@@ -400,6 +471,7 @@ async function deleteProduct(index) {
 
 
     if (!confirmDelete) {
+
         return;
     }
 
@@ -436,6 +508,13 @@ async function deleteProduct(index) {
             await response.text();
 
 
+        console.log(
+            "Delete Product Response:",
+            response.status,
+            result
+        );
+
+
         if (response.ok) {
 
             showMessage(
@@ -443,9 +522,11 @@ async function deleteProduct(index) {
                 "success"
             );
 
+
             await loadProducts();
 
-        } else {
+        }
+        else {
 
             showMessage(
                 "Product deletion failed: " + result,
@@ -454,12 +535,14 @@ async function deleteProduct(index) {
         }
 
 
-    } catch (error) {
+    }
+    catch (error) {
 
         console.log(
             "Delete Product Error:",
             error
         );
+
 
         showMessage(
             "Unable to connect to Java backend.",
@@ -477,6 +560,13 @@ function showMessage(text, type) {
 
     const message =
         document.getElementById("message");
+
+
+    if (!message) {
+
+        return;
+    }
+
 
     message.innerHTML = text;
 
@@ -503,10 +593,19 @@ async function loadProducts() {
     try {
 
         const response =
-            await fetch("/products");
+            await fetch(
+                "/products"
+            );
+
+
+        console.log(
+            "Products Response Status:",
+            response.status
+        );
 
 
         if (!response.ok) {
+
             throw new Error(
                 "Product request failed"
             );
@@ -517,32 +616,40 @@ async function loadProducts() {
             await response.json();
 
 
+        console.log(
+            "Products From Backend:",
+            data
+        );
+
+
         products =
-            data.map(function(product) {
+            data.map(
+                function(product) {
 
-                return {
+                    return {
 
-                    id: product.id,
+                        id: product.id,
 
-                    name: product.name,
+                        name: product.name,
 
-                    price: product.price,
+                        price: product.price,
 
-                    stock: product.stock,
+                        stock: product.stock,
 
-                    category: product.category,
+                        category: product.category,
 
-                    image:
-                        product.image || ""
-                };
-
-            });
+                        image:
+                            product.image || ""
+                    };
+                }
+            );
 
 
         displayProducts();
 
 
-    } catch (error) {
+    }
+    catch (error) {
 
         console.log(
             "Product Load Error:",
@@ -566,10 +673,19 @@ async function loadOrders() {
     try {
 
         const response =
-            await fetch("/orders");
+            await fetch(
+                "/orders"
+            );
+
+
+        console.log(
+            "Orders Response Status:",
+            response.status
+        );
 
 
         if (!response.ok) {
+
             throw new Error(
                 "Orders request failed"
             );
@@ -580,8 +696,16 @@ async function loadOrders() {
             await response.json();
 
 
+        console.log(
+            "Orders From Backend:",
+            orders
+        );
+
+
         const orderList =
-            document.getElementById("orderList");
+            document.getElementById(
+                "orderList"
+            );
 
 
         orderList.innerHTML = "";
@@ -596,114 +720,121 @@ async function loadOrders() {
         }
 
 
-        orders.forEach(function(order) {
+        orders.forEach(
+            function(order) {
 
-            orderList.innerHTML += `
+                orderList.innerHTML += `
 
-                <div class="product">
+                    <div class="product">
 
-                    <h3>
-                        Order ID: ${order.id}
-                    </h3>
+                        <h3>
+                            Order ID: ${order.id}
+                        </h3>
 
-                    <p>
-                        Product:
-                        ${order.product_name}
-                    </p>
+                        <p>
+                            Product:
+                            ${order.product_name}
+                        </p>
 
-                    <p>
-                        Price:
-                        ₹${order.price}
-                    </p>
+                        <p>
+                            Price:
+                            ₹${order.price}
+                        </p>
 
-                    <p>
-                        Quantity:
-                        ${order.quantity}
-                    </p>
+                        <p>
+                            Quantity:
+                            ${order.quantity}
+                        </p>
 
-                    <p>
-                        Total:
-                        ₹${order.total}
-                    </p>
+                        <p>
+                            Total:
+                            ₹${order.total}
+                        </p>
 
-                    <p>
-                        Status:
+                        <p>
+                            Status:
 
-                        <select
-                            onchange="
-                                updateOrderStatus(
-                                    ${order.id},
-                                    this.value
-                                )
-                            "
-                        >
-
-                            <option
-                                value="Placed"
-                                ${
-                                    order.status === "Placed"
-                                    ? "selected"
-                                    : ""
-                                }
+                            <select
+                                onchange="
+                                    updateOrderStatus(
+                                        ${order.id},
+                                        this.value
+                                    )
+                                "
                             >
-                                Placed
-                            </option>
 
-                            <option
-                                value="Processing"
-                                ${
-                                    order.status === "Processing"
-                                    ? "selected"
-                                    : ""
-                                }
-                            >
-                                Processing
-                            </option>
-
-                            <option
-                                value="Shipped"
-                                ${
-                                    order.status === "Shipped"
-                                    ? "selected"
-                                    : ""
-                                }
-                            >
-                                Shipped
-                            </option>
-
-                            <option
-                                value="Delivered"
-                                ${
-                                    order.status === "Delivered"
-                                    ? "selected"
-                                    : ""
-                                }
-                            >
-                                Delivered
-                            </option>
-
-                            <option
-                                value="Cancelled"
-                                ${
-                                    order.status === "Cancelled"
-                                    ? "selected"
-                                    : ""
-                                }
-                            >
-                                Cancelled
-                            </option>
-
-                        </select>
-
-                    </p>
-
-                </div>
-
-            `;
-        });
+                                <option
+                                    value="Placed"
+                                    ${
+                                        order.status === "Placed"
+                                        ? "selected"
+                                        : ""
+                                    }
+                                >
+                                    Placed
+                                </option>
 
 
-    } catch (error) {
+                                <option
+                                    value="Processing"
+                                    ${
+                                        order.status === "Processing"
+                                        ? "selected"
+                                        : ""
+                                    }
+                                >
+                                    Processing
+                                </option>
+
+
+                                <option
+                                    value="Shipped"
+                                    ${
+                                        order.status === "Shipped"
+                                        ? "selected"
+                                        : ""
+                                    }
+                                >
+                                    Shipped
+                                </option>
+
+
+                                <option
+                                    value="Delivered"
+                                    ${
+                                        order.status === "Delivered"
+                                        ? "selected"
+                                        : ""
+                                    }
+                                >
+                                    Delivered
+                                </option>
+
+
+                                <option
+                                    value="Cancelled"
+                                    ${
+                                        order.status === "Cancelled"
+                                        ? "selected"
+                                        : ""
+                                    }
+                                >
+                                    Cancelled
+                                </option>
+
+                            </select>
+
+                        </p>
+
+                    </div>
+
+                `;
+            }
+        );
+
+
+    }
+    catch (error) {
 
         console.log(
             "Order Error:",
@@ -732,8 +863,16 @@ async function updateOrderStatus(
         new URLSearchParams();
 
 
-    data.append("id", orderId);
-    data.append("status", status);
+    data.append(
+        "id",
+        orderId
+    );
+
+
+    data.append(
+        "status",
+        status
+    );
 
 
     try {
@@ -758,6 +897,13 @@ async function updateOrderStatus(
             await response.text();
 
 
+        console.log(
+            "Order Status Response:",
+            response.status,
+            result
+        );
+
+
         if (response.ok) {
 
             showMessage(
@@ -765,9 +911,11 @@ async function updateOrderStatus(
                 "success"
             );
 
+
             await loadOrders();
 
-        } else {
+        }
+        else {
 
             showMessage(
                 "Order status update failed: " + result,
@@ -776,12 +924,14 @@ async function updateOrderStatus(
         }
 
 
-    } catch (error) {
+    }
+    catch (error) {
 
         console.log(
             "Order Status Error:",
             error
         );
+
 
         showMessage(
             "Unable to connect to Java backend.",

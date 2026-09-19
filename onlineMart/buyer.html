@@ -15,14 +15,23 @@
 
     <h2>Buyer Product Browsing</h2>
 
-    <!-- Cart Button -->
+
+    <!-- Cart and Wishlist Buttons -->
+
     <button onclick="goToCart()">
         🛒 Cart
     </button>
 
+    <button onclick="goToWishlist()">
+        ❤️ Wishlist
+    </button>
+
+
     <br><br>
 
+
     <!-- Search -->
+
     <input
         type="text"
         id="searchBox"
@@ -30,12 +39,17 @@
         onkeyup="filterProducts()"
     >
 
+
     <!-- Category Filter -->
+
     <select
         id="categoryFilter"
         onchange="filterProducts()"
     >
-        <option value="All">All Categories</option>
+
+        <option value="All">
+            All Categories
+        </option>
 
         <option value="Mobile">
             Mobile
@@ -48,10 +62,14 @@
         <option value="Accessories">
             Accessories
         </option>
+
     </select>
 
+
     <!-- Product List -->
+
     <div id="productList"></div>
+
 
     <!-- Order History -->
 
@@ -59,9 +77,12 @@
 
     <div id="orderList">
 
-        <p>No orders found.</p>
+        <p>
+            No orders found.
+        </p>
 
     </div>
+
 
     <script src="buyer.js"></script>
 
