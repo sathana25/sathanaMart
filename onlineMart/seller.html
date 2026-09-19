@@ -2,20 +2,31 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
 
     <title>SathanaMart - Seller</title>
 
-    <link rel="stylesheet" href="seller.css">
+    <link
+        rel="stylesheet"
+        href="seller.css">
+
 </head>
 
 <body>
 
     <header>
+
         <h1>🛒 SathanaMart</h1>
+
         <p>Seller Module</p>
+
     </header>
+
 
     <main>
 
@@ -32,20 +43,24 @@
 
             <h2>Add New Product</h2>
 
+
             <input
                 type="text"
                 id="productName"
                 placeholder="Product Name">
+
 
             <input
                 type="number"
                 id="productPrice"
                 placeholder="Price">
 
+
             <input
                 type="number"
                 id="productStock"
                 placeholder="Stock">
+
 
             <select id="productCategory">
 
@@ -67,8 +82,19 @@
 
             </select>
 
+
+            <!-- PRODUCT IMAGE -->
+
+            <input
+                type="file"
+                id="productImage"
+                accept="image/*">
+
+
             <button onclick="addProduct()">
+
                 Add Product
+
             </button>
 
         </section>
@@ -87,6 +113,7 @@
                 My Products
             </h2>
 
+
             <div
                 id="productList"
                 class="products">
@@ -104,16 +131,21 @@
                 Orders Received
             </h2>
 
+
             <div
                 id="orderList"
                 class="products">
 
-                <p>Loading orders...</p>
+                <p>
+                    Loading orders...
+                </p>
 
             </div>
 
         </section>
 
+
+        <!-- BACK BUTTON -->
 
         <button
             class="back-button"
