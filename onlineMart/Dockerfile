@@ -2,7 +2,8 @@ FROM eclipse-temurin:17-jdk
 
 WORKDIR /app
 
-COPY . .
+COPY onlineMart/ /app/
+COPY lib/mysql-connector-j-26.7.0.jar /app/lib/mysql-connector-j-26.7.0.jar
 
 RUN javac -cp "lib/mysql-connector-j-26.7.0.jar" SathanaMartBackend.java
 
