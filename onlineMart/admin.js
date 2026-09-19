@@ -33,6 +33,14 @@ function loadProducts() {
                             Category: ${product.category}
                         </p>
 
+                        <button onclick="editProduct(${product.id})">
+                           Edit
+                        </button>
+
+                        <button onclick="deleteProduct(${product.id})">
+                          Delete
+                        </button>
+
                     </div>
                 `;
             });
@@ -45,6 +53,87 @@ function loadProducts() {
                 error
             );
         });
+}
+function deleteProduct(productId) {
+
+    if (!confirm("Are you sure you want to delete this product?")) {
+        return;
+    }
+
+    fetch("/products", {
+        method: "DELETE",
+        headers: {
+            "Content-Type":
+                "application/x-www-form-urlencoded"
+        },
+        body: "id=" + productId
+    })
+    .then(response => response.text())
+    .then(message => {
+
+        alert(message);
+
+        loadProducts();
+
+    })
+    .catch(error => {
+
+        console.log(
+            "Delete Product Error:",
+            error
+        );
+
+        alert("Product delete failed!");
+
+    });
+}
+function editProduct(productId) {
+
+    let name = prompt("Enter new product name:");
+    if (name === null) return;
+
+    let price = prompt("Enter new price:");
+    if (price === null) return;
+
+    let stock = prompt("Enter new stock:");
+    if (stock === null) return;
+
+    let category = prompt("Enter new category:");
+    if (category === null) return;
+
+    let data =
+        "id=" + productId +
+        "&name=" + encodeURIComponent(name) +
+        "&price=" + price +
+        "&stock=" + stock +
+        "&category=" + encodeURIComponent(category);
+
+    fetch("/products", {
+        method: "PUT",
+        headers: {
+            "Content-Type":
+                "application/x-www-form-urlencoded"
+        },
+        body: data
+    })
+    .then(response => response.text())
+    .then(message => {
+
+        alert(message);
+
+        loadProducts();
+
+    })
+    .catch(error => {
+
+        console.log(
+            "Edit Product Error:",
+            error
+        );
+
+        alert("Product update failed!");
+
+    });
 }
 
 
