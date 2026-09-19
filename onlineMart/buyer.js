@@ -185,27 +185,20 @@ function displayCart() {
     let cartList =
         document.getElementById("cartList");
 
-
     let cartTotal =
         document.getElementById("cartTotal");
 
-
     cartList.innerHTML = "";
-
 
     let total = 0;
 
-
     cart.forEach(function(product) {
-
 
         let productTotal =
             product.price *
             product.quantity;
 
-
         total += productTotal;
-
 
         cartList.innerHTML += `
 
@@ -215,26 +208,29 @@ function displayCart() {
                     ${product.name}
                 </h3>
 
-
                 <p>
                     Price: ₹${product.price}
                 </p>
 
-
                 <p>
-                    Quantity: ${product.quantity}
-                </p>
+                    Quantity:
+                    <button onclick="decreaseQuantity(${product.id})">
+                        -
+                    </button>
 
+                    ${product.quantity}
+
+                    <button onclick="increaseQuantity(${product.id})">
+                        +
+                    </button>
+                </p>
 
                 <p>
                     Subtotal: ₹${productTotal}
                 </p>
 
-
                 <button
-                    onclick="removeFromCart(
-                        ${product.id}
-                    )"
+                    onclick="removeFromCart(${product.id})"
                 >
                     Remove
                 </button>
@@ -247,11 +243,41 @@ function displayCart() {
 
     });
 
-
     cartTotal.innerHTML =
         "Total: ₹" + total;
 }
+function increaseQuantity(id) {
 
+    let product = cart.find(function(product) {
+        return product.id === id;
+    });
+
+    if (product) {
+        product.quantity++;
+        displayCart();
+    }
+}
+
+
+function decreaseQuantity(id) {
+
+    let product = cart.find(function(product) {
+        return product.id === id;
+    });
+
+    if (product) {
+
+        if (product.quantity > 1) {
+            product.quantity--;
+        } else {
+            cart = cart.filter(function(product) {
+                return product.id !== id;
+            });
+        }
+
+        displayCart();
+    }
+}
 
 // ==============================
 // REMOVE FROM CART
