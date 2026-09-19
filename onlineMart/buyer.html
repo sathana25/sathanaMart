@@ -15,6 +15,13 @@
 
     <h2>Buyer Product Browsing</h2>
 
+    <!-- Cart Button -->
+    <button onclick="goToCart()">
+        🛒 Cart
+    </button>
+
+    <br><br>
+
     <!-- Search -->
     <input
         type="text"
@@ -29,27 +36,24 @@
         onchange="filterProducts()"
     >
         <option value="All">All Categories</option>
-        <option value="Mobile">Mobile</option>
-        <option value="Electronics">Electronics</option>
-        <option value="Accessories">Accessories</option>
+
+        <option value="Mobile">
+            Mobile
+        </option>
+
+        <option value="Electronics">
+            Electronics
+        </option>
+
+        <option value="Accessories">
+            Accessories
+        </option>
     </select>
 
     <!-- Product List -->
     <div id="productList"></div>
 
-
-    <h2>Shopping Cart</h2>
-
-    <div id="cartList"></div>
-
-    <h3 id="cartTotal">
-        Total: ₹0
-    </h3>
-
-    <button onclick="placeOrder()">
-        Place Order
-    </button>
-
+    <!-- Order History -->
 
     <h2>Order History</h2>
 
@@ -58,7 +62,6 @@
         <p>No orders found.</p>
 
     </div>
-
 
     <script src="buyer.js"></script>
 

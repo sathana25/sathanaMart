@@ -1,4 +1,4 @@
-let cart = [];
+let cart = JSON.parse(localStorage.getItem("sathanaCart")) || [];
 
 let allProducts = [];
 
@@ -55,9 +55,32 @@ function displayProducts(products) {
 
     products.forEach(function(product) {
 
+        let imageHTML = "";
+
+        if (product.image) {
+
+            imageHTML = `
+                <img
+                    src="${product.image}"
+                    alt="${product.name}"
+                    style="
+                        width: 200px;
+                        height: 200px;
+                        object-fit: contain;
+                        display: block;
+                        margin-bottom: 10px;
+                    "
+                >
+            `;
+
+        }
+
+
         productList.innerHTML += `
 
             <div class="product">
+
+                ${imageHTML}
 
                 <h3>${product.name}</h3>
 
@@ -73,12 +96,12 @@ function displayProducts(products) {
                     Category: ${product.category}
                 </p>
 
-
                 <button
                     onclick="addToCart(
                         ${product.id},
                         '${product.name}',
-                        ${product.price}
+                        ${product.price},
+                        '${product.image || ""}'
                     )"
                 >
                     Add to Cart
@@ -116,7 +139,6 @@ function filterProducts() {
     let filteredProducts =
         allProducts.filter(function(product) {
 
-
             let nameMatch =
                 product.name
                     .toLowerCase()
@@ -141,7 +163,7 @@ function filterProducts() {
 // ADD TO CART
 // ==============================
 
-function addToCart(id, name, price) {
+function addToCart(id, name, price, image) {
 
     let existingProduct =
         cart.find(function(product) {
@@ -153,7 +175,27 @@ function addToCart(id, name, price) {
 
     if (existingProduct) {
 
-        existingProduct.quantity++;
+        let originalProduct =
+            allProducts.find(function(product) {
+
+                return product.id === id;
+
+            });
+
+
+        if (
+            originalProduct &&
+            existingProduct.quantity < originalProduct.stock
+        ) {
+
+            existingProduct.quantity++;
+
+        } else {
+
+            alert("Stock limit reached!");
+
+            return;
+        }
 
     } else {
 
@@ -165,6 +207,8 @@ function addToCart(id, name, price) {
 
             price: price,
 
+            image: image,
+
             quantity: 1
 
         });
@@ -172,7 +216,24 @@ function addToCart(id, name, price) {
     }
 
 
+    saveCart();
+
+    alert("Product added to cart!");
+
     displayCart();
+}
+
+
+// ==============================
+// SAVE CART
+// ==============================
+
+function saveCart() {
+
+    localStorage.setItem(
+        "sathanaCart",
+        JSON.stringify(cart)
+    );
 }
 
 
@@ -188,9 +249,16 @@ function displayCart() {
     let cartTotal =
         document.getElementById("cartTotal");
 
+
+    if (!cartList || !cartTotal) {
+        return;
+    }
+
+
     cartList.innerHTML = "";
 
     let total = 0;
+
 
     cart.forEach(function(product) {
 
@@ -198,7 +266,9 @@ function displayCart() {
             product.price *
             product.quantity;
 
+
         total += productTotal;
+
 
         cartList.innerHTML += `
 
@@ -214,15 +284,21 @@ function displayCart() {
 
                 <p>
                     Quantity:
-                    <button onclick="decreaseQuantity(${product.id})">
+                    
+                    <button
+                        onclick="decreaseQuantity(${product.id})"
+                    >
                         -
                     </button>
 
                     ${product.quantity}
 
-                    <button onclick="increaseQuantity(${product.id})">
+                    <button
+                        onclick="increaseQuantity(${product.id})"
+                    >
                         +
                     </button>
+
                 </p>
 
                 <p>
@@ -243,24 +319,44 @@ function displayCart() {
 
     });
 
+
     cartTotal.innerHTML =
         "Total: ₹" + total;
 }
+
+
+// ==============================
+// INCREASE QUANTITY
+// ==============================
+
 function increaseQuantity(id) {
 
-    let cartProduct = cart.find(function(product) {
-        return product.id === id;
-    });
+    let cartProduct =
+        cart.find(function(product) {
 
-    let originalProduct = allProducts.find(function(product) {
-        return product.id === id;
-    });
+            return product.id === id;
+
+        });
+
+
+    let originalProduct =
+        allProducts.find(function(product) {
+
+            return product.id === id;
+
+        });
+
 
     if (cartProduct && originalProduct) {
 
-        if (cartProduct.quantity < originalProduct.stock) {
+        if (
+            cartProduct.quantity <
+            originalProduct.stock
+        ) {
 
             cartProduct.quantity++;
+
+            saveCart();
 
             displayCart();
 
@@ -269,28 +365,49 @@ function increaseQuantity(id) {
             alert("Stock limit reached!");
 
         }
+
     }
 }
 
+
+// ==============================
+// DECREASE QUANTITY
+// ==============================
+
 function decreaseQuantity(id) {
 
-    let product = cart.find(function(product) {
-        return product.id === id;
-    });
+    let product =
+        cart.find(function(product) {
+
+            return product.id === id;
+
+        });
+
 
     if (product) {
 
         if (product.quantity > 1) {
+
             product.quantity--;
+
         } else {
+
             cart = cart.filter(function(product) {
+
                 return product.id !== id;
+
             });
+
         }
 
+
+        saveCart();
+
         displayCart();
+
     }
 }
+
 
 // ==============================
 // REMOVE FROM CART
@@ -305,7 +422,19 @@ function removeFromCart(id) {
     });
 
 
+    saveCart();
+
     displayCart();
+}
+
+
+// ==============================
+// GO TO CART PAGE
+// ==============================
+
+function goToCart() {
+
+    window.location.href = "/cart.html";
 }
 
 
@@ -314,7 +443,6 @@ function removeFromCart(id) {
 // ==============================
 
 function placeOrder() {
-
 
     if (cart.length === 0) {
 
@@ -326,7 +454,6 @@ function placeOrder() {
 
     let requests =
         cart.map(function(product) {
-
 
             let productTotal =
                 product.price *
@@ -375,7 +502,6 @@ function placeOrder() {
 
         .then(function(results) {
 
-
             alert(
                 "Order Placed Successfully!"
             );
@@ -383,16 +509,15 @@ function placeOrder() {
 
             cart = [];
 
+            saveCart();
 
             displayCart();
-
 
             loadOrders();
 
         })
 
         .catch(function(error) {
-
 
             console.log(
                 "Order Error:",
@@ -422,7 +547,6 @@ function loadOrders() {
 
         .then(orders => {
 
-
             let orderList =
                 document.getElementById(
                     "orderList"
@@ -443,7 +567,6 @@ function loadOrders() {
 
             orders.forEach(function(order) {
 
-
                 orderList.innerHTML += `
 
                     <div class="order">
@@ -453,30 +576,25 @@ function loadOrders() {
                             ${order.id}
                         </h3>
 
-
                         <p>
                             Product:
                             ${order.product_name}
                         </p>
-
 
                         <p>
                             Price:
                             ₹${order.price}
                         </p>
 
-
                         <p>
                             Quantity:
                             ${order.quantity}
                         </p>
 
-
                         <p>
                             Total:
                             ₹${order.total}
                         </p>
-
 
                         <p>
                             Status:
@@ -486,7 +604,7 @@ function loadOrders() {
                         <p>
                             Order Date:
                             ${order.order_date}
-                       </p>
+                        </p>
 
                     </div>
 
@@ -516,3 +634,5 @@ function loadOrders() {
 loadProducts();
 
 loadOrders();
+
+displayCart();

@@ -1430,6 +1430,33 @@ server.createContext("/admin.html", exchange -> {
            });
 
 
+            server.createContext("/cart.html", exchange -> {
+                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    serveFile(exchange, "cart.html", "text/html");
+                } else {
+                    exchange.sendResponseHeaders(405, -1);
+                    exchange.close();
+                }
+            });
+
+            server.createContext("/cart.css", exchange -> {
+                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    serveFile(exchange, "cart.css", "text/css");
+                } else {
+                    exchange.sendResponseHeaders(405, -1);
+                    exchange.close();
+                }
+            });
+
+            server.createContext("/cart.js", exchange -> {
+                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    serveFile(exchange, "cart.js", "application/javascript");
+                } else {
+                    exchange.sendResponseHeaders(405, -1);
+                    exchange.close();
+                }
+            });
+
             server.start();
 
             System.out.println(
