@@ -3,558 +3,472 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Scanner;
+import java.net.InetSocketAddress;
+import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 public class SathanaMartBackend {
+        private static final String DB_HOST =
+        System.getenv().getOrDefault("SATHANAMART_DB_HOST", "localhost");
+
+private static final String DB_PORT =
+        System.getenv().getOrDefault("SATHANAMART_DB_PORT", "3306");
+
+private static final String DB_NAME =
+        System.getenv().getOrDefault("SATHANAMART_DB_NAME", "SathanaMart");
+
+private static final String USERNAME =
+        System.getenv().getOrDefault("SATHANAMART_DB_USER", "root");
+
+private static final String PASSWORD =
+        System.getenv("SATHANAMART_DB_PASSWORD");
 
 
-    static final String URL =
-            "jdbc:mysql://localhost:3306/SathanaMart";
+private static final String URL =
+        "jdbc:mysql://" + DB_HOST + ":" + DB_PORT + "/" + DB_NAME
+        + "?sslMode=REQUIRED&allowPublicKeyRetrieval=true&serverTimezone=UTC";        
 
-    static final String USERNAME = "root";
 
-    static final String PASSWORD =
-            "sathana2007@";
 
     public static void main(String[] args) {
 
         try {
-                Class.forName("com.mysql.cj.jdbc.Driver");
-            HttpServer server = HttpServer.create(
-                    new java.net.InetSocketAddress(8080), 0
-            );
+
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+
+                    int port = Integer.parseInt(
+    System.getenv().getOrDefault("PORT", "8080")
+);
+
+HttpServer server = HttpServer.create(
+    new InetSocketAddress("0.0.0.0", port),
+    0
+);
+
+
+            // =========================================
+            // HOME PAGE
+            // =========================================
 
             server.createContext("/", exchange -> {
 
-                java.nio.file.Path file =
-                        java.nio.file.Paths.get("index.html");
-
-                byte[] content =
-                        java.nio.file.Files.readAllBytes(file);
-
-                exchange.getResponseHeaders().set(
-                        "Content-Type",
+                serveFile(
+                        exchange,
+                        "index.html",
                         "text/html"
                 );
 
-                exchange.sendResponseHeaders(
-                        200,
-                        content.length
-                );
-
-                java.io.OutputStream output =
-                        exchange.getResponseBody();
-
-                output.write(content);
-                output.close();
             });
 
 
+            // =========================================
+            // REGISTER
+            // =========================================
+
             server.createContext("/register", exchange -> {
 
-                if ("POST".equalsIgnoreCase(
+                if (!"POST".equalsIgnoreCase(
                         exchange.getRequestMethod())) {
 
-                    String requestData =
-                            new String(
-                                    exchange.getRequestBody().readAllBytes()
+                    exchange.sendResponseHeaders(405, -1);
+                    exchange.close();
+                    return;
+                }
+
+
+                String requestData =
+                        new String(
+                                exchange.getRequestBody()
+                                        .readAllBytes()
+                        );
+
+
+                String name =
+                        getValue(requestData, "name");
+
+                String email =
+                        getValue(requestData, "email");
+
+                String password =
+                        getValue(requestData, "password");
+
+                String role =
+                        getValue(requestData, "role");
+
+
+                String sql =
+                        "INSERT INTO users " +
+                        "(name, email, password, role) " +
+                        "VALUES (?, ?, ?, ?)";
+
+
+                String response;
+
+
+                try {
+
+                    Connection connection =
+                            DriverManager.getConnection(
+                                    URL,
+                                    USERNAME,
+                                    PASSWORD
                             );
 
-                    String[] values =
-                            requestData.split("&");
 
-                    String name = "";
-                    String email = "";
-                    String password = "";
-                    String role = "";
+                    PreparedStatement statement =
+                            connection.prepareStatement(sql);
 
-                    for (String value : values) {
 
-                        String[] pair =
-                                value.split("=", 2);
+                    statement.setString(1, name);
+                    statement.setString(2, email);
+                    statement.setString(3, password);
+                    statement.setString(4, role);
 
-                        if (pair.length < 2) {
-                            continue;
-                        }
 
-                        String key = pair[0];
+                    int result =
+                            statement.executeUpdate();
 
-                        String data =
-                                java.net.URLDecoder.decode(
-                                        pair[1],
-                                        "UTF-8"
-                                );
 
-                        if (key.equals("name")) {
-                            name = data;
-                        }
+                    if (result > 0) {
 
-                        if (key.equals("email")) {
-                            email = data;
-                        }
+                        response =
+                                "Account Created Successfully!";
 
-                        if (key.equals("password")) {
-                            password = data;
-                        }
-
-                        if (key.equals("role")) {
-                            role = data;
-                        }
-                    }
-
-                    String sql =
-                            "INSERT INTO users " +
-                            "(name, email, password, role) " +
-                            "VALUES (?, ?, ?, ?)";
-
-                    String response;
-
-                    try {
-
-                        Connection connection =
-                                DriverManager.getConnection(
-                                        URL,
-                                        USERNAME,
-                                        PASSWORD
-                                );
-
-                        PreparedStatement statement =
-                                connection.prepareStatement(sql);
-
-                        statement.setString(1, name);
-                        statement.setString(2, email);
-                        statement.setString(3, password);
-                        statement.setString(4, role);
-
-                        int result =
-                                statement.executeUpdate();
-
-                        if (result > 0) {
-
-                            response =
-                                    "Account Created Successfully!";
-
-                        } else {
-
-                            response =
-                                    "Account Creation Failed!";
-                        }
-
-                        statement.close();
-                        connection.close();
-
-                    } catch (Exception e) {
+                    } else {
 
                         response =
                                 "Account Creation Failed!";
                     }
 
-                    exchange.getResponseHeaders().set(
-                            "Content-Type",
-                            "text/plain"
-                    );
 
-                    exchange.sendResponseHeaders(
-                            200,
-                            response.length()
-                    );
+                    statement.close();
+                    connection.close();
 
-                    java.io.OutputStream output =
-                            exchange.getResponseBody();
+                } catch (Exception e) {
 
-                    output.write(response.getBytes());
-                    output.close();
-
-                } else {
-
-                    exchange.sendResponseHeaders(405, -1);
-                    exchange.close();
+                    response =
+                            "Account Creation Failed!";
                 }
+
+
+                sendText(
+                        exchange,
+                        response
+                );
+
             });
 
+
+            // =========================================
+            // LOGIN
+            // =========================================
 
             server.createContext("/login", exchange -> {
 
-                if ("POST".equalsIgnoreCase(
+                if (!"POST".equalsIgnoreCase(
                         exchange.getRequestMethod())) {
-
-                    String requestData =
-                            new String(
-                                    exchange.getRequestBody().readAllBytes()
-                            );
-
-                    String[] values =
-                            requestData.split("&");
-
-                    String email = "";
-                    String password = "";
-                    String role = "";
-
-                    for (String value : values) {
-
-                        String[] pair =
-                                value.split("=", 2);
-
-                        if (pair.length < 2) {
-                            continue;
-                        }
-
-                        String key = pair[0];
-
-                        String data =
-                                java.net.URLDecoder.decode(
-                                        pair[1],
-                                        "UTF-8"
-                                );
-
-                        if (key.equals("email")) {
-                            email = data;
-                        }
-
-                        if (key.equals("password")) {
-                            password = data;
-                        }
-
-                        if (key.equals("role")) {
-                            role = data;
-                        }
-                    }
-
-                    String response;
-
-                    try {
-
-                        Connection connection =
-                                DriverManager.getConnection(
-                                        URL,
-                                        USERNAME,
-                                        PASSWORD
-                                );
-
-                        String sql =
-                                "SELECT * FROM users " +
-                                "WHERE email = ? " +
-                                "AND password = ? " +
-                                "AND role = ?";
-
-                        PreparedStatement statement =
-                                connection.prepareStatement(sql);
-
-                        statement.setString(1, email);
-                        statement.setString(2, password);
-                        statement.setString(3, role);
-
-                        ResultSet resultSet =
-                                statement.executeQuery();
-
-                        if (resultSet.next()) {
-
-                            response =
-                                    "Login Successfully! Welcome to SathanaMart";
-
-                        } else {
-
-                            response =
-                                    "Invalid Email, Password or Role!";
-                        }
-
-                        resultSet.close();
-                        statement.close();
-                        connection.close();
-
-                    } catch (Exception e) {
-
-                        response =
-                                "Login Failed!";
-                    }
-
-                    exchange.getResponseHeaders().set(
-                            "Content-Type",
-                            "text/plain"
-                    );
-
-                    exchange.sendResponseHeaders(
-                            200,
-                            response.length()
-                    );
-
-                    java.io.OutputStream output =
-                            exchange.getResponseBody();
-
-                    output.write(response.getBytes());
-                    output.close();
-
-                } else {
 
                     exchange.sendResponseHeaders(405, -1);
                     exchange.close();
+                    return;
                 }
+
+
+                String requestData =
+                        new String(
+                                exchange.getRequestBody()
+                                        .readAllBytes()
+                        );
+
+
+                String email =
+                        getValue(requestData, "email");
+
+                String password =
+                        getValue(requestData, "password");
+
+                String role =
+                        getValue(requestData, "role");
+
+
+                String sql =
+                        "SELECT * FROM users " +
+                        "WHERE email = ? " +
+                        "AND password = ? " +
+                        "AND role = ?";
+
+
+                String response;
+
+
+                try {
+
+                    Connection connection =
+                            DriverManager.getConnection(
+                                    URL,
+                                    USERNAME,
+                                    PASSWORD
+                            );
+
+
+                    PreparedStatement statement =
+                            connection.prepareStatement(sql);
+
+
+                    statement.setString(1, email);
+                    statement.setString(2, password);
+                    statement.setString(3, role);
+
+
+                    ResultSet resultSet =
+                            statement.executeQuery();
+
+
+                    if (resultSet.next()) {
+
+                        response =
+                                "Login Successfully! " +
+                                "Welcome to SathanaMart";
+
+                    } else {
+
+                        response =
+                                "Invalid Email, Password or Role!";
+                    }
+
+
+                    resultSet.close();
+                    statement.close();
+                    connection.close();
+
+                } catch (Exception e) {
+
+                    response =
+                            "Login Failed!";
+                }
+
+
+                sendText(
+                        exchange,
+                        response
+                );
+
             });
 
 
-            server.createContext("/script.js", exchange -> {
+            // =========================================
+            // FRONTEND FILES
+            // =========================================
 
-                java.nio.file.Path file =
-                        java.nio.file.Paths.get("script.js");
-
-                byte[] content =
-                        java.nio.file.Files.readAllBytes(file);
-
-                exchange.getResponseHeaders().set(
-                        "Content-Type",
-                        "application/javascript"
-                );
-
-                exchange.sendResponseHeaders(
-                        200,
-                        content.length
-                );
-
-                java.io.OutputStream output =
-                        exchange.getResponseBody();
-
-                output.write(content);
-                output.close();
-            });
+            createFileRoute(
+                    server,
+                    "/script.js",
+                    "script.js",
+                    "application/javascript"
+            );
 
 
-            server.createContext("/style.css", exchange -> {
-
-                java.nio.file.Path file =
-                        java.nio.file.Paths.get("style.css");
-
-                byte[] content =
-                        java.nio.file.Files.readAllBytes(file);
-
-                exchange.getResponseHeaders().set(
-                        "Content-Type",
-                        "text/css"
-                );
-
-                exchange.sendResponseHeaders(
-                        200,
-                        content.length
-                );
-
-                java.io.OutputStream output =
-                        exchange.getResponseBody();
-
-                output.write(content);
-                output.close();
-            });
+            createFileRoute(
+                    server,
+                    "/style.css",
+                    "style.css",
+                    "text/css"
+            );
 
 
-            server.createContext("/seller.html", exchange -> {
-
-                java.nio.file.Path file =
-                        java.nio.file.Paths.get("seller.html");
-
-                byte[] content =
-                        java.nio.file.Files.readAllBytes(file);
-
-                exchange.getResponseHeaders().set(
-                        "Content-Type",
-                        "text/html"
-                );
-
-                exchange.sendResponseHeaders(
-                        200,
-                        content.length
-                );
-
-                java.io.OutputStream output =
-                        exchange.getResponseBody();
-
-                output.write(content);
-                output.close();
-            });
+            createFileRoute(
+                    server,
+                    "/seller.html",
+                    "seller.html",
+                    "text/html"
+            );
 
 
-            server.createContext("/seller.js", exchange -> {
-
-                java.nio.file.Path file =
-                        java.nio.file.Paths.get("seller.js");
-
-                byte[] content =
-                        java.nio.file.Files.readAllBytes(file);
-
-                exchange.getResponseHeaders().set(
-                        "Content-Type",
-                        "application/javascript"
-                );
-
-                exchange.sendResponseHeaders(
-                        200,
-                        content.length
-                );
-
-                java.io.OutputStream output =
-                        exchange.getResponseBody();
-
-                output.write(content);
-                output.close();
-            });
+            createFileRoute(
+                    server,
+                    "/seller.js",
+                    "seller.js",
+                    "application/javascript"
+            );
 
 
-            server.createContext("/seller.css", exchange -> {
-
-                java.nio.file.Path file =
-                        java.nio.file.Paths.get("seller.css");
-
-                byte[] content =
-                        java.nio.file.Files.readAllBytes(file);
-
-                exchange.getResponseHeaders().set(
-                        "Content-Type",
-                        "text/css"
-                );
-
-                exchange.sendResponseHeaders(
-                        200,
-                        content.length
-                );
-
-                java.io.OutputStream output =
-                        exchange.getResponseBody();
-
-                output.write(content);
-                output.close();
-            });
+            createFileRoute(
+                    server,
+                    "/seller.css",
+                    "seller.css",
+                    "text/css"
+            );
 
 
-            server.createContext("/products", exchange -> {
+            createFileRoute(
+                    server,
+                    "/buyer.html",
+                    "buyer.html",
+                    "text/html"
+            );
+
+
+            createFileRoute(
+                    server,
+                    "/buyer.js",
+                    "buyer.js",
+                    "application/javascript"
+            );
+
+
+            createFileRoute(
+                    server,
+                    "/buyer.css",
+                    "buyer.css",
+                    "text/css"
+            );
+
+
+            createFileRoute(
+                    server,
+                    "/admin.html",
+                    "admin.html",
+                    "text/html"
+            );
+
+
+            createFileRoute(
+                    server,
+                    "/admin.js",
+                    "admin.js",
+                    "application/javascript"
+            );
+
+
+            createFileRoute(
+                    server,
+                    "/admin.css",
+                    "admin.css",
+                    "text/css"
+            );
+
+
+            // =========================================
+            // CART PAGE
+            // =========================================
+
+            createFileRoute(
+                    server,
+                    "/cart.html",
+                    "cart.html",
+                    "text/html"
+            );
+
+
+            createFileRoute(
+                    server,
+                    "/cart.js",
+                    "cart.js",
+                    "application/javascript"
+            );
+
+
+            createFileRoute(
+                    server,
+                    "/cart.css",
+                    "cart.css",
+                    "text/css"
+            );
+
+
+            // =========================================
+            // WISHLIST PAGE
+            // =========================================
+
+            createFileRoute(
+                    server,
+                    "/wishlist.html",
+                    "wishlist.html",
+                    "text/html"
+            );
+
+
+            createFileRoute(
+                    server,
+                    "/wishlist.js",
+                    "wishlist.js",
+                    "application/javascript"
+            );
+
+
+            createFileRoute(
+                    server,
+                    "/wishlist.css",
+                    "wishlist.css",
+                    "text/css"
+            );
+
+
+            // =========================================
+            // PRODUCTS
+            // =========================================
+
+            server.createContext(
+                    "/products",
+                    exchange -> {
 
                 String method =
                         exchange.getRequestMethod();
 
 
+                // -------------------------------------
+                // ADD PRODUCT
+                // -------------------------------------
+
                 if ("POST".equalsIgnoreCase(method)) {
 
                     String requestData =
                             new String(
-                                    exchange.getRequestBody().readAllBytes()
+                                    exchange.getRequestBody()
+                                            .readAllBytes()
                             );
 
-                    String[] values =
-                            requestData.split("&");
 
-                    String name = "";
-                    String price = "";
-                    String stock = "";
-                    String category = "";
+                    String name =
+                            getValue(
+                                    requestData,
+                                    "name"
+                            );
 
-                    for (String value : values) {
+                    String price =
+                            getValue(
+                                    requestData,
+                                    "price"
+                            );
 
-                        String[] pair =
-                                value.split("=", 2);
+                    String stock =
+                            getValue(
+                                    requestData,
+                                    "stock"
+                            );
 
-                        if (pair.length < 2) {
-                            continue;
-                        }
+                    String category =
+                            getValue(
+                                    requestData,
+                                    "category"
+                            );
 
-                        String key = pair[0];
+                    String image =
+                            getValue(
+                                    requestData,
+                                    "image"
+                            );
 
-                        String data =
-                                java.net.URLDecoder.decode(
-                                        pair[1],
-                                        "UTF-8"
-                                );
-
-                        if (key.equals("name")) {
-                            name = data;
-                        }
-
-                        if (key.equals("price")) {
-                            price = data;
-                        }
-
-                        if (key.equals("stock")) {
-                            stock = data;
-                        }
-
-                        if (key.equals("category")) {
-                            category = data;
-                        }
-                    }
 
                     String sql =
                             "INSERT INTO products " +
-                            "(name, price, stock, category) " +
-                            "VALUES (?, ?, ?, ?)";
+                            "(name, price, stock, category, image) " +
+                            "VALUES (?, ?, ?, ?, ?)";
+
 
                     String response;
 
-                    try {
-
-                        Connection connection =
-                                DriverManager.getConnection(
-                                        URL,
-                                        USERNAME,
-                                        PASSWORD
-                                );
-
-                        PreparedStatement statement =
-                                connection.prepareStatement(sql);
-
-                        statement.setString(1, name);
-                        statement.setDouble(
-                                2,
-                                Double.parseDouble(price)
-                        );
-
-                        statement.setInt(
-                                3,
-                                Integer.parseInt(stock)
-                        );
-
-                        statement.setString(4, category);
-
-                        int result =
-                                statement.executeUpdate();
-
-                        if (result > 0) {
-
-                            response =
-                                    "Product Added Successfully!";
-
-                        } else {
-
-                            response =
-                                    "Product Addition Failed!";
-                        }
-
-                        statement.close();
-                        connection.close();
-
-                    } catch (Exception e) {
-
-                        response =
-                                "Product Addition Failed!";
-                    }
-
-                    exchange.getResponseHeaders().set(
-                            "Content-Type",
-                            "text/plain"
-                    );
-
-                    exchange.sendResponseHeaders(
-                            200,
-                            response.length()
-                    );
-
-                    java.io.OutputStream output =
-                            exchange.getResponseBody();
-
-                    output.write(response.getBytes());
-                    output.close();
-
-
-                } else if ("GET".equalsIgnoreCase(method)) {
-
-                    StringBuilder json =
-                            new StringBuilder();
-
-                    json.append("[");
 
                     try {
 
@@ -565,180 +479,10 @@ public class SathanaMartBackend {
                                         PASSWORD
                                 );
 
-                        String sql =
-                                "SELECT id, name, price, stock, category " +
-                                "FROM products";
 
                         PreparedStatement statement =
                                 connection.prepareStatement(sql);
 
-                        ResultSet resultSet =
-                                statement.executeQuery();
-
-                        boolean first = true;
-
-                        while (resultSet.next()) {
-
-                            if (!first) {
-                                json.append(",");
-                            }
-
-                            json.append("{");
-
-                            json.append("\"id\":")
-                                    .append(
-                                            resultSet.getInt("id")
-                                    )
-                                    .append(",");
-
-                            json.append("\"name\":\"")
-                                    .append(
-                                            resultSet.getString("name")
-                                    )
-                                    .append("\",");
-
-                            json.append("\"price\":")
-                                    .append(
-                                            resultSet.getDouble("price")
-                                    )
-                                    .append(",");
-
-                            json.append("\"stock\":")
-                                    .append(
-                                            resultSet.getInt("stock")
-                                    )
-                                    .append(",");
-
-                            json.append("\"category\":\"")
-                                    .append(
-                                            resultSet.getString("category")
-                                    )
-                                    .append("\"");
-
-                            json.append("}");
-
-                            first = false;
-                        }
-
-                        resultSet.close();
-                        statement.close();
-                        connection.close();
-
-                        json.append("]");
-
-                        String response =
-                                json.toString();
-
-                        exchange.getResponseHeaders().set(
-                                "Content-Type",
-                                "application/json"
-                        );
-
-                        exchange.sendResponseHeaders(
-                                200,
-                                response.length()
-                        );
-
-                        java.io.OutputStream output =
-                                exchange.getResponseBody();
-
-                        output.write(response.getBytes());
-                        output.close();
-
-                    } catch (Exception e) {
-
-                        String response = "[]";
-
-                        exchange.getResponseHeaders().set(
-                                "Content-Type",
-                                "application/json"
-                        );
-
-                        exchange.sendResponseHeaders(
-                                500,
-                                response.length()
-                        );
-
-                        java.io.OutputStream output =
-                                exchange.getResponseBody();
-
-                        output.write(response.getBytes());
-                        output.close();
-                    }
-
-
-                } else if ("PUT".equalsIgnoreCase(method)) {
-
-                    String requestData =
-                            new String(
-                                    exchange.getRequestBody().readAllBytes()
-                            );
-
-                    String[] values =
-                            requestData.split("&");
-
-                    String id = "";
-                    String name = "";
-                    String price = "";
-                    String stock = "";
-                    String category = "";
-
-                    for (String value : values) {
-
-                        String[] pair =
-                                value.split("=", 2);
-
-                        if (pair.length < 2) {
-                            continue;
-                        }
-
-                        String key = pair[0];
-
-                        String data =
-                                java.net.URLDecoder.decode(
-                                        pair[1],
-                                        "UTF-8"
-                                );
-
-                        if (key.equals("id")) {
-                            id = data;
-                        }
-
-                        if (key.equals("name")) {
-                            name = data;
-                        }
-
-                        if (key.equals("price")) {
-                            price = data;
-                        }
-
-                        if (key.equals("stock")) {
-                            stock = data;
-                        }
-
-                        if (key.equals("category")) {
-                            category = data;
-                        }
-                    }
-
-                    String sql =
-                            "UPDATE products SET " +
-                            "name = ?, price = ?, stock = ?, category = ? " +
-                            "WHERE id = ?";
-
-                    String response;
-
-                    try {
-
-                        Connection connection =
-                                DriverManager.getConnection(
-                                        URL,
-                                        USERNAME,
-                                        PASSWORD
-                                );
-
-                        PreparedStatement statement =
-                                connection.prepareStatement(sql);
 
                         statement.setString(1, name);
 
@@ -757,13 +501,312 @@ public class SathanaMartBackend {
                                 category
                         );
 
-                        statement.setInt(
+                        statement.setString(
                                 5,
-                                Integer.parseInt(id)
+                                image
                         );
+
 
                         int result =
                                 statement.executeUpdate();
+
+
+                        if (result > 0) {
+
+                            response =
+                                    "Product Added Successfully!";
+
+                        } else {
+
+                            response =
+                                    "Product Addition Failed!";
+                        }
+
+
+                        statement.close();
+                        connection.close();
+
+                    } catch (Exception e) {
+
+                        response =
+                                "Product Addition Failed!";
+                    }
+
+
+                    sendText(
+                            exchange,
+                            response
+                    );
+
+
+                // -------------------------------------
+                // GET PRODUCTS
+                // -------------------------------------
+
+                } else if (
+                        "GET".equalsIgnoreCase(method)
+                ) {
+
+                    StringBuilder json =
+                            new StringBuilder();
+
+
+                    json.append("[");
+
+
+                    try {
+
+                        Connection connection =
+                                DriverManager.getConnection(
+                                        URL,
+                                        USERNAME,
+                                        PASSWORD
+                                );
+
+
+                        String sql =
+                                "SELECT id, name, price, " +
+                                "stock, category, image " +
+                                "FROM products";
+
+
+                        PreparedStatement statement =
+                                connection.prepareStatement(sql);
+
+
+                        ResultSet resultSet =
+                                statement.executeQuery();
+
+
+                        boolean first = true;
+
+
+                        while (resultSet.next()) {
+
+                            if (!first) {
+
+                                json.append(",");
+
+                            }
+
+
+                            json.append("{");
+
+
+                            json.append("\"id\":")
+                                    .append(
+                                            resultSet.getInt("id")
+                                    )
+                                    .append(",");
+
+
+                            json.append("\"name\":\"")
+                                    .append(
+                                            escapeJson(
+                                                resultSet.getString(
+                                                    "name"
+                                                )
+                                            )
+                                    )
+                                    .append("\",");
+
+
+                            json.append("\"price\":")
+                                    .append(
+                                            resultSet.getDouble(
+                                                    "price"
+                                            )
+                                    )
+                                    .append(",");
+
+
+                            json.append("\"stock\":")
+                                    .append(
+                                            resultSet.getInt(
+                                                    "stock"
+                                            )
+                                    )
+                                    .append(",");
+
+
+                            json.append("\"category\":\"")
+                                    .append(
+                                            escapeJson(
+                                                resultSet.getString(
+                                                    "category"
+                                                )
+                                            )
+                                    )
+                                    .append("\",");
+
+
+                            String image =
+                                    resultSet.getString(
+                                            "image"
+                                    );
+
+
+                            json.append("\"image\":\"")
+                                    .append(
+                                            escapeJson(
+                                                image == null
+                                                        ? ""
+                                                        : image
+                                            )
+                                    )
+                                    .append("\"");
+
+
+                            json.append("}");
+
+
+                            first = false;
+                        }
+
+
+                        json.append("]");
+
+
+                        resultSet.close();
+                        statement.close();
+                        connection.close();
+
+
+                        sendJson(
+                                exchange,
+                                200,
+                                json.toString()
+                        );
+
+
+                    } catch (Exception e) {
+
+                        sendJson(
+                                exchange,
+                                500,
+                                "[]"
+                        );
+                    }
+
+
+                // -------------------------------------
+                // UPDATE PRODUCT
+                // -------------------------------------
+
+                } else if (
+                        "PUT".equalsIgnoreCase(method)
+                ) {
+
+                    String requestData =
+                            new String(
+                                    exchange.getRequestBody()
+                                            .readAllBytes()
+                            );
+
+
+                    String id =
+                            getValue(
+                                    requestData,
+                                    "id"
+                            );
+
+                    String name =
+                            getValue(
+                                    requestData,
+                                    "name"
+                            );
+
+                    String price =
+                            getValue(
+                                    requestData,
+                                    "price"
+                            );
+
+                    String stock =
+                            getValue(
+                                    requestData,
+                                    "stock"
+                            );
+
+                    String category =
+                            getValue(
+                                    requestData,
+                                    "category"
+                            );
+
+                    String image =
+                            getValue(
+                                    requestData,
+                                    "image"
+                            );
+
+
+                    String sql =
+                            "UPDATE products SET " +
+                            "name = ?, " +
+                            "price = ?, " +
+                            "stock = ?, " +
+                            "category = ?, " +
+                            "image = ? " +
+                            "WHERE id = ?";
+
+
+                    String response;
+
+
+                    try {
+
+                        Connection connection =
+                                DriverManager.getConnection(
+                                        URL,
+                                        USERNAME,
+                                        PASSWORD
+                                );
+
+
+                        PreparedStatement statement =
+                                connection.prepareStatement(sql);
+
+
+                        statement.setString(
+                                1,
+                                name
+                        );
+
+
+                        statement.setDouble(
+                                2,
+                                Double.parseDouble(price)
+                        );
+
+
+                        statement.setInt(
+                                3,
+                                Integer.parseInt(stock)
+                        );
+
+
+                        statement.setString(
+                                4,
+                                category
+                        );
+
+
+                        statement.setString(
+                                5,
+                                image
+                        );
+
+
+                        statement.setInt(
+                                6,
+                                Integer.parseInt(id)
+                        );
+
+
+                        int result =
+                                statement.executeUpdate();
+
 
                         if (result > 0) {
 
@@ -776,6 +819,7 @@ public class SathanaMartBackend {
                                     "Product Update Failed!";
                         }
 
+
                         statement.close();
                         connection.close();
 
@@ -785,61 +829,37 @@ public class SathanaMartBackend {
                                 "Product Update Failed!";
                     }
 
-                    exchange.getResponseHeaders().set(
-                            "Content-Type",
-                            "text/plain"
+
+                    sendText(
+                            exchange,
+                            response
                     );
 
-                    exchange.sendResponseHeaders(
-                            200,
-                            response.length()
-                    );
 
-                    java.io.OutputStream output =
-                            exchange.getResponseBody();
+                // -------------------------------------
+                // DELETE PRODUCT
+                // -------------------------------------
 
-                    output.write(response.getBytes());
-                    output.close();
-
-
-                } else if ("DELETE".equalsIgnoreCase(method)) {
+                } else if (
+                        "DELETE".equalsIgnoreCase(method)
+                ) {
 
                     String requestData =
                             new String(
-                                    exchange.getRequestBody().readAllBytes()
+                                    exchange.getRequestBody()
+                                            .readAllBytes()
                             );
 
-                    String[] values =
-                            requestData.split("&");
 
-                    String id = "";
+                    String id =
+                            getValue(
+                                    requestData,
+                                    "id"
+                            );
 
-                    for (String value : values) {
-
-                        String[] pair =
-                                value.split("=", 2);
-
-                        if (pair.length < 2) {
-                            continue;
-                        }
-
-                        String key = pair[0];
-
-                        String data =
-                                java.net.URLDecoder.decode(
-                                        pair[1],
-                                        "UTF-8"
-                                );
-
-                        if (key.equals("id")) {
-                            id = data;
-                        }
-                    }
-
-                    String sql =
-                            "DELETE FROM products WHERE id = ?";
 
                     String response;
+
 
                     try {
 
@@ -850,16 +870,25 @@ public class SathanaMartBackend {
                                         PASSWORD
                                 );
 
+
+                        String sql =
+                                "DELETE FROM products " +
+                                "WHERE id = ?";
+
+
                         PreparedStatement statement =
                                 connection.prepareStatement(sql);
+
 
                         statement.setInt(
                                 1,
                                 Integer.parseInt(id)
                         );
 
+
                         int result =
                                 statement.executeUpdate();
+
 
                         if (result > 0) {
 
@@ -872,6 +901,7 @@ public class SathanaMartBackend {
                                     "Product Delete Failed!";
                         }
 
+
                         statement.close();
                         connection.close();
 
@@ -881,21 +911,11 @@ public class SathanaMartBackend {
                                 "Product Delete Failed!";
                     }
 
-                    exchange.getResponseHeaders().set(
-                            "Content-Type",
-                            "text/plain"
+
+                    sendText(
+                            exchange,
+                            response
                     );
-
-                    exchange.sendResponseHeaders(
-                            200,
-                            response.length()
-                    );
-
-                    java.io.OutputStream output =
-                            exchange.getResponseBody();
-
-                    output.write(response.getBytes());
-                    output.close();
 
 
                 } else {
@@ -909,63 +929,66 @@ public class SathanaMartBackend {
                 }
 
             });
-            server.createContext("/orders", exchange -> {
 
-                String method = exchange.getRequestMethod();
+
+            // =========================================
+            // ORDERS
+            // =========================================
+
+            server.createContext(
+                    "/orders",
+                    exchange -> {
+
+                String method =
+                        exchange.getRequestMethod();
+
+
+                // -------------------------------------
+                // CREATE ORDER
+                // -------------------------------------
 
                 if ("POST".equalsIgnoreCase(method)) {
 
                     String requestData =
                             new String(
-                                    exchange.getRequestBody().readAllBytes()
+                                    exchange.getRequestBody()
+                                            .readAllBytes()
                             );
 
-                    String[] values = requestData.split("&");
 
-                    String productName = "";
-                    String price = "";
-                    String quantity = "";
-                    String total = "";
+                    String productName =
+                            getValue(
+                                    requestData,
+                                    "product_name"
+                            );
 
-                    for (String value : values) {
+                    String price =
+                            getValue(
+                                    requestData,
+                                    "price"
+                            );
 
-                        String[] pair = value.split("=", 2);
+                    String quantity =
+                            getValue(
+                                    requestData,
+                                    "quantity"
+                            );
 
-                        if (pair.length < 2) {
-                            continue;
-                        }
+                    String total =
+                            getValue(
+                                    requestData,
+                                    "total"
+                            );
 
-                        String key = pair[0];
-
-                        String data =
-                                java.net.URLDecoder.decode(
-                                        pair[1],
-                                        "UTF-8"
-                                );
-
-                        if (key.equals("product_name")) {
-                            productName = data;
-                        }
-
-                        if (key.equals("price")) {
-                            price = data;
-                        }
-
-                        if (key.equals("quantity")) {
-                            quantity = data;
-                        }
-
-                        if (key.equals("total")) {
-                            total = data;
-                        }
-                    }
 
                     String sql =
                             "INSERT INTO orders " +
                             "(product_name, price, quantity, total) " +
                             "VALUES (?, ?, ?, ?)";
 
+
                     String response;
+
 
                     try {
 
@@ -976,100 +999,97 @@ public class SathanaMartBackend {
                                         PASSWORD
                                 );
 
+
                         PreparedStatement statement =
                                 connection.prepareStatement(sql);
 
-                        statement.setString(1, productName);
+
+                        statement.setString(
+                                1,
+                                productName
+                        );
+
 
                         statement.setDouble(
                                 2,
                                 Double.parseDouble(price)
                         );
 
+
                         statement.setInt(
                                 3,
                                 Integer.parseInt(quantity)
                         );
+
 
                         statement.setDouble(
                                 4,
                                 Double.parseDouble(total)
                         );
 
+
                         int result =
                                 statement.executeUpdate();
 
+
                         if (result > 0) {
-                            response = "Order Placed Successfully!";
+
+                            response =
+                                    "Order Placed Successfully!";
+
                         } else {
-                            response = "Order Placement Failed!";
+
+                            response =
+                                    "Order Placement Failed!";
                         }
+
 
                         statement.close();
                         connection.close();
 
                     } catch (Exception e) {
-                        response = "Order Placement Failed!";
+
+                        response =
+                                "Order Placement Failed!";
                     }
 
-                    exchange.getResponseHeaders().set(
-                            "Content-Type",
-                            "text/plain"
+
+                    sendText(
+                            exchange,
+                            response
                     );
 
-                    exchange.sendResponseHeaders(
-                            200,
-                            response.length()
-                    );
 
-                    java.io.OutputStream output =
-                            exchange.getResponseBody();
+                // -------------------------------------
+                // UPDATE ORDER STATUS
+                // -------------------------------------
 
-                    output.write(response.getBytes());
-                    output.close();
-
-
-                } else if ("PUT".equalsIgnoreCase(method)) {
+                } else if (
+                        "PUT".equalsIgnoreCase(method)
+                ) {
 
                     String requestData =
                             new String(
-                                    exchange.getRequestBody().readAllBytes()
+                                    exchange.getRequestBody()
+                                            .readAllBytes()
                             );
 
-                    String[] values = requestData.split("&");
 
-                    String id = "";
-                    String status = "";
+                    String id =
+                            getValue(
+                                    requestData,
+                                    "id"
+                            );
 
-                    for (String value : values) {
+                    String status =
+                            getValue(
+                                    requestData,
+                                    "status"
+                            );
 
-                        String[] pair = value.split("=", 2);
-
-                        if (pair.length < 2) {
-                            continue;
-                        }
-
-                        String key = pair[0];
-
-                        String data =
-                                java.net.URLDecoder.decode(
-                                        pair[1],
-                                        "UTF-8"
-                                );
-
-                        if (key.equals("id")) {
-                            id = data;
-                        }
-
-                        if (key.equals("status")) {
-                            status = data;
-                        }
-                    }
-
-                    String sql =
-                            "UPDATE orders SET status = ? WHERE id = ?";
 
                     String response;
+
 
                     try {
 
@@ -1080,26 +1100,44 @@ public class SathanaMartBackend {
                                         PASSWORD
                                 );
 
+
+                        String sql =
+                                "UPDATE orders " +
+                                "SET status = ? " +
+                                "WHERE id = ?";
+
+
                         PreparedStatement statement =
                                 connection.prepareStatement(sql);
 
-                        statement.setString(1, status);
+
+                        statement.setString(
+                                1,
+                                status
+                        );
+
 
                         statement.setInt(
                                 2,
                                 Integer.parseInt(id)
                         );
 
+
                         int result =
                                 statement.executeUpdate();
 
+
                         if (result > 0) {
+
                             response =
                                     "Order Status Updated Successfully!";
+
                         } else {
+
                             response =
                                     "Order Status Update Failed!";
                         }
+
 
                         statement.close();
                         connection.close();
@@ -1110,29 +1148,27 @@ public class SathanaMartBackend {
                                 "Order Status Update Failed!";
                     }
 
-                    exchange.getResponseHeaders().set(
-                            "Content-Type",
-                            "text/plain"
+
+                    sendText(
+                            exchange,
+                            response
                     );
 
-                    exchange.sendResponseHeaders(
-                            200,
-                            response.length()
-                    );
 
-                    java.io.OutputStream output =
-                            exchange.getResponseBody();
+                // -------------------------------------
+                // GET ORDERS
+                // -------------------------------------
 
-                    output.write(response.getBytes());
-
-                    output.close();
-                }
-                else if ("GET".equalsIgnoreCase(method)) {
+                } else if (
+                        "GET".equalsIgnoreCase(method)
+                ) {
 
                     StringBuilder json =
                             new StringBuilder();
 
+
                     json.append("[");
+
 
                     try {
 
@@ -1143,104 +1179,138 @@ public class SathanaMartBackend {
                                         PASSWORD
                                 );
 
+
                         String sql =
-                                "SELECT id, product_name, price, quantity, total, status, order_date " +
-                                 "FROM orders ORDER BY id DESC";
-                               
+                                "SELECT id, product_name, " +
+                                "price, quantity, total, " +
+                                "status, order_date " +
+                                "FROM orders " +
+                                "ORDER BY id DESC";
+
 
                         PreparedStatement statement =
                                 connection.prepareStatement(sql);
 
+
                         ResultSet resultSet =
                                 statement.executeQuery();
 
+
                         boolean first = true;
+
 
                         while (resultSet.next()) {
 
                             if (!first) {
+
                                 json.append(",");
+
                             }
+
 
                             json.append("{");
 
+
                             json.append("\"id\":")
-                                    .append(resultSet.getInt("id"))
+                                    .append(
+                                            resultSet.getInt("id")
+                                    )
                                     .append(",");
 
-                            json.append("\"product_name\":\"")
-                                    .append(resultSet.getString("product_name"))
-                                    .append("\",");
+
+                            json.append(
+                                    "\"product_name\":\""
+                            )
+                            .append(
+                                    escapeJson(
+                                        resultSet.getString(
+                                                "product_name"
+                                        )
+                                    )
+                            )
+                            .append("\",");
+
 
                             json.append("\"price\":")
-                                    .append(resultSet.getDouble("price"))
+                                    .append(
+                                            resultSet.getDouble(
+                                                    "price"
+                                            )
+                                    )
                                     .append(",");
+
 
                             json.append("\"quantity\":")
-                                    .append(resultSet.getInt("quantity"))
+                                    .append(
+                                            resultSet.getInt(
+                                                    "quantity"
+                                            )
+                                    )
                                     .append(",");
+
 
                             json.append("\"total\":")
-                                    .append(resultSet.getDouble("total"))
+                                    .append(
+                                            resultSet.getDouble(
+                                                    "total"
+                                            )
+                                    )
                                     .append(",");
 
+
                             json.append("\"status\":\"")
-                                    .append(resultSet.getString("status"))
+                                    .append(
+                                            escapeJson(
+                                                resultSet.getString(
+                                                        "status"
+                                                )
+                                            )
+                                    )
                                     .append("\",");
 
+
                             json.append("\"order_date\":\"")
-                                    .append(resultSet.getString("order_date"))
-                                    .append("\"");       
+                                    .append(
+                                            escapeJson(
+                                                resultSet.getString(
+                                                        "order_date"
+                                                )
+                                            )
+                                    )
+                                    .append("\"");
+
 
                             json.append("}");
+
 
                             first = false;
                         }
 
+
                         json.append("]");
+
 
                         resultSet.close();
                         statement.close();
                         connection.close();
 
-                        String response = json.toString();
 
-                        exchange.getResponseHeaders().set(
-                                "Content-Type",
-                                "application/json"
-                        );
-
-                        exchange.sendResponseHeaders(
+                        sendJson(
+                                exchange,
                                 200,
-                                response.length()
+                                json.toString()
                         );
 
-                        java.io.OutputStream output =
-                                exchange.getResponseBody();
-
-                        output.write(response.getBytes());
-                        output.close();
 
                     } catch (Exception e) {
 
-                        String response = "[]";
-
-                        exchange.getResponseHeaders().set(
-                                "Content-Type",
-                                "application/json"
-                        );
-
-                        exchange.sendResponseHeaders(
+                        sendJson(
+                                exchange,
                                 500,
-                                response.length()
+                                "[]"
                         );
-
-                        java.io.OutputStream output =
-                                exchange.getResponseBody();
-
-                        output.write(response.getBytes());
-                        output.close();
                     }
+
 
                 } else {
 
@@ -1255,210 +1325,241 @@ public class SathanaMartBackend {
             });
 
 
-            server.createContext("/buyer.html", exchange -> {
-              java.nio.file.Path file = java.nio.file.Paths.get("buyer.html");
-              byte[] content = java.nio.file.Files.readAllBytes(file);
+            // =========================================
+            // USERS
+            // =========================================
 
-              exchange.getResponseHeaders().set("Content-Type", "text/html");
-              exchange.sendResponseHeaders(200, content.length);
+            server.createContext(
+                    "/users",
+                    exchange -> {
 
-              java.io.OutputStream output = exchange.getResponseBody();
-              output.write(content);
-              output.close();
-           });
+                String method =
+                        exchange.getRequestMethod();
 
-           server.createContext("/buyer.js", exchange -> {
-             java.nio.file.Path file = java.nio.file.Paths.get("buyer.js");
-             byte[] content = java.nio.file.Files.readAllBytes(file);
 
-             exchange.getResponseHeaders().set("Content-Type", "application/javascript");
-             exchange.sendResponseHeaders(200, content.length);
+                // GET USERS
 
-             java.io.OutputStream output = exchange.getResponseBody();
-             output.write(content);
-             output.close();
-           });
+                if ("GET".equalsIgnoreCase(method)) {
 
-           server.createContext("/buyer.css", exchange -> {
-             java.nio.file.Path file = java.nio.file.Paths.get("buyer.css");
-             byte[] content = java.nio.file.Files.readAllBytes(file);
+                    StringBuilder json =
+                            new StringBuilder();
 
-             exchange.getResponseHeaders().set("Content-Type", "text/css");
-             exchange.sendResponseHeaders(200, content.length);
 
-             java.io.OutputStream output = exchange.getResponseBody();
-             output.write(content);
-             output.close();
-          });
- 
-          server.createContext("/users", exchange -> {
+                    json.append("[");
 
-    String method = exchange.getRequestMethod();
 
-    if ("GET".equalsIgnoreCase(method)) {
+                    try {
 
-        StringBuilder json = new StringBuilder();
-        json.append("[");
+                        Connection connection =
+                                DriverManager.getConnection(
+                                        URL,
+                                        USERNAME,
+                                        PASSWORD
+                                );
 
-        try {
 
-            Connection connection =
-                    DriverManager.getConnection(URL, USERNAME, PASSWORD);
+                        String sql =
+                                "SELECT id, name, email, role " +
+                                "FROM users " +
+                                "ORDER BY id DESC";
 
-            String sql =
-                    "SELECT id, name, email, role FROM users ORDER BY id DESC";
 
-            PreparedStatement statement = connection.prepareStatement(sql);
-            ResultSet resultSet = statement.executeQuery();
-            boolean first = true;
+                        PreparedStatement statement =
+                                connection.prepareStatement(sql);
 
-            while (resultSet.next()) {
 
-                if (!first) {
-                    json.append(",");
-                }
+                        ResultSet resultSet =
+                                statement.executeQuery();
 
-                json.append("{");
-                json.append("\"id\":").append(resultSet.getInt("id")).append(",");
-                json.append("\"name\":\"").append(resultSet.getString("name")).append("\",");
-                json.append("\"email\":\"").append(resultSet.getString("email")).append("\",");
-                json.append("\"role\":\"").append(resultSet.getString("role")).append("\"");
-                json.append("}");
-                first = false;
-            }
 
-            json.append("]");
-            resultSet.close();
-            statement.close();
-            connection.close();
+                        boolean first = true;
 
-            String response = json.toString();
-            exchange.getResponseHeaders().set("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, response.length());
-            java.io.OutputStream output = exchange.getResponseBody();
-            output.write(response.getBytes());
-            output.close();
 
-        } catch (Exception e) {
+                        while (resultSet.next()) {
 
-            String response = "[]";
-            exchange.getResponseHeaders().set("Content-Type", "application/json");
-            exchange.sendResponseHeaders(500, response.length());
-            java.io.OutputStream output = exchange.getResponseBody();
-            output.write(response.getBytes());
-            output.close();
-        }
+                            if (!first) {
 
-    } else if ("DELETE".equalsIgnoreCase(method)) {
+                                json.append(",");
 
-        String requestData = new String(exchange.getRequestBody().readAllBytes());
-        String[] values = requestData.split("&");
-        String id = "";
+                            }
 
-        for (String value : values) {
-            String[] pair = value.split("=", 2);
-            if (pair.length < 2) {
-                continue;
-            }
-            String key = pair[0];
-            String data = java.net.URLDecoder.decode(pair[1], "UTF-8");
-            if (key.equals("id")) {
-                id = data;
-            }
-        }
 
-        String response;
+                            json.append("{");
 
-        try {
-            Connection connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
-            String sql = "DELETE FROM users WHERE id = ?";
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setInt(1, Integer.parseInt(id));
-            int result = statement.executeUpdate();
 
-            if (result > 0) {
-                response = "User Deleted Successfully!";
-            } else {
-                response = "User Delete Failed!";
-            }
+                            json.append("\"id\":")
+                                    .append(
+                                            resultSet.getInt("id")
+                                    )
+                                    .append(",");
 
-            statement.close();
-            connection.close();
 
-        } catch (Exception e) {
-            response = "User Delete Failed!";
-        }
+                            json.append("\"name\":\"")
+                                    .append(
+                                            escapeJson(
+                                                resultSet.getString(
+                                                        "name"
+                                                )
+                                            )
+                                    )
+                                    .append("\",");
 
-        exchange.getResponseHeaders().set("Content-Type", "text/plain");
-        exchange.sendResponseHeaders(200, response.length());
-        java.io.OutputStream output = exchange.getResponseBody();
-        output.write(response.getBytes());
-        output.close();
 
-    } else {
-        exchange.sendResponseHeaders(405, -1);
-        exchange.close();
-    }
+                            json.append("\"email\":\"")
+                                    .append(
+                                            escapeJson(
+                                                resultSet.getString(
+                                                        "email"
+                                                )
+                                            )
+                                    )
+                                    .append("\",");
 
-});
 
-server.createContext("/admin.html", exchange -> {
-                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-                   serveFile(exchange, "admin.html", "text/html");
+                            json.append("\"role\":\"")
+                                    .append(
+                                            escapeJson(
+                                                resultSet.getString(
+                                                        "role"
+                                                )
+                                            )       
+                                    )
+                                    .append("\"");
+
+
+                            json.append("}");
+
+
+                            first = false;
+                        }
+
+
+                        json.append("]");
+
+
+                        resultSet.close();
+                        statement.close();
+                        connection.close();
+
+
+                        sendJson(
+                                exchange,
+                                200,
+                                json.toString()
+                        );
+
+
+                    } catch (Exception e) {
+
+                        sendJson(
+                                exchange,
+                                500,
+                                "[]"
+                        );
+                    }
+
+
+                // DELETE USER
+
+                } else if (
+                        "DELETE".equalsIgnoreCase(method)
+                ) {
+
+                    String requestData =
+                            new String(
+                                    exchange.getRequestBody()
+                                            .readAllBytes()
+                            );
+
+
+                    String id =
+                            getValue(
+                                    requestData,
+                                    "id"
+                            );
+
+
+                    String response;
+
+
+                    try {
+
+                        Connection connection =
+                                DriverManager.getConnection(
+                                        URL,
+                                        USERNAME,
+                                        PASSWORD
+                                );
+
+
+                        String sql =
+                                "DELETE FROM users " +
+                                "WHERE id = ?";
+
+
+                        PreparedStatement statement =
+                                connection.prepareStatement(sql);
+
+
+                        statement.setInt(
+                                1,
+                                Integer.parseInt(id)
+                        );
+
+
+                        int result =
+                                statement.executeUpdate();
+
+
+                        if (result > 0) {
+
+                            response =
+                                    "User Deleted Successfully!";
+
+                        } else {
+
+                            response =
+                                    "User Delete Failed!";
+                        }
+
+
+                        statement.close();
+                        connection.close();
+
+                    } catch (Exception e) {
+
+                        response =
+                                "User Delete Failed!";
+                    }
+
+
+                    sendText(
+                            exchange,
+                            response
+                    );
+
+
                 } else {
-                   exchange.sendResponseHeaders(405, -1);
-                   exchange.close();
-                }
-          });
 
-           server.createContext("/admin.css", exchange -> {
-                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-                   serveFile(exchange, "admin.css", "text/css");
-                } else {
-                   exchange.sendResponseHeaders(405, -1);
-                   exchange.close();
-                }
-           });
+                    exchange.sendResponseHeaders(
+                            405,
+                            -1
+                    );
 
-           server.createContext("/admin.js", exchange -> {
-                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-                    serveFile(exchange, "admin.js", "application/javascript");
-                } else {
-                    exchange.sendResponseHeaders(405, -1);
                     exchange.close();
                 }
-           });
 
-
-            server.createContext("/cart.html", exchange -> {
-                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-                    serveFile(exchange, "cart.html", "text/html");
-                } else {
-                    exchange.sendResponseHeaders(405, -1);
-                    exchange.close();
-                }
             });
 
-            server.createContext("/cart.css", exchange -> {
-                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-                    serveFile(exchange, "cart.css", "text/css");
-                } else {
-                    exchange.sendResponseHeaders(405, -1);
-                    exchange.close();
-                }
-            });
 
-            server.createContext("/cart.js", exchange -> {
-                if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-                    serveFile(exchange, "cart.js", "application/javascript");
-                } else {
-                    exchange.sendResponseHeaders(405, -1);
-                    exchange.close();
-                }
-            });
+            // =========================================
+            // START SERVER
+            // =========================================
 
             server.start();
 
+
+            System.out.println();
             System.out.println(
                     "SathanaMart Server Started!"
             );
@@ -1466,6 +1567,39 @@ server.createContext("/admin.html", exchange -> {
             System.out.println(
                     "Open: http://localhost:8080"
             );
+
+            System.out.println();
+            System.out.println(
+                    "================================"
+            );
+
+            System.out.println(
+                    "      SATHANAMART BACKEND"
+            );
+
+            System.out.println(
+                    "================================"
+            );
+
+
+            System.out.println(
+                    "Server is running..."
+            );
+
+
+            // Keep server running
+
+            Scanner sc =
+                    new Scanner(System.in);
+
+            System.out.println(
+                    "Press ENTER to stop the server."
+            );
+
+            sc.nextLine();
+
+            sc.close();
+
 
         } catch (Exception e) {
 
@@ -1478,280 +1612,248 @@ server.createContext("/admin.html", exchange -> {
             );
         }
 
-
-        Scanner sc =
-                new Scanner(System.in);
-
-        System.out.println(
-                "================================"
-        );
-
-        System.out.println(
-                "      SATHANAMART BACKEND"
-        );
-
-        System.out.println(
-                "================================"
-        );
-
-        System.out.println(
-                "\n1. Create Account"
-        );
-
-        System.out.println(
-                "2. Login"
-        );
-
-        System.out.print(
-                "\nEnter your choice: "
-        );
-
-        int choice =
-                sc.nextInt();
-
-        sc.nextLine();
-
-
-        if (choice == 1) {
-
-            createAccount(sc);
-
-        } else if (choice == 2) {
-
-            login(sc);
-
-        } else {
-
-            System.out.println(
-                    "Invalid Choice"
-            );
-        }
-
-        sc.close();
     }
 
 
-    static void createAccount(Scanner sc) {
+    // =========================================
+    // HELPER - GET FORM VALUE
+    // =========================================
 
-        System.out.println(
-                "\n--- CREATE ACCOUNT ---"
-        );
+    static String getValue(
+            String requestData,
+            String key) {
 
-        System.out.print(
-                "Enter Name: "
-        );
-
-        String name =
-                sc.nextLine();
-
-        System.out.print(
-                "Enter Email: "
-        );
-
-        String email =
-                sc.nextLine();
-
-        System.out.print(
-                "Enter Password: "
-        );
-
-        String password =
-                sc.nextLine();
-
-        System.out.print(
-                "Enter Role (Buyer/Seller): "
-        );
-
-        String role =
-                sc.nextLine();
+        String[] values =
+                requestData.split("&");
 
 
-        String sql =
-                "INSERT INTO users " +
-                "(name, email, password, role) " +
-                "VALUES (?, ?, ?, ?)";
+        for (String value : values) {
+
+            String[] pair =
+                    value.split("=", 2);
 
 
-        try {
+            if (pair.length < 2) {
 
-            Connection connection =
-                    DriverManager.getConnection(
-                            URL,
-                            USERNAME,
-                            PASSWORD
-                    );
+                continue;
 
-            PreparedStatement statement =
-                    connection.prepareStatement(sql);
-
-            statement.setString(1, name);
-            statement.setString(2, email);
-            statement.setString(3, password);
-            statement.setString(4, role);
-
-            int result =
-                    statement.executeUpdate();
-
-            if (result > 0) {
-
-                System.out.println(
-                        "\nAccount Created Successfully!"
-                );
-
-                System.out.println(
-                        "User saved in MySQL database."
-                );
-            }
-
-            statement.close();
-            connection.close();
-
-        } catch (Exception e) {
-
-            System.out.println(
-                    "\nAccount Creation Failed!"
-            );
-
-            System.out.println(
-                    e.getMessage()
-            );
-        }
-    }
-
-
-    static void login(Scanner sc) {
-
-        System.out.println(
-                "\n--- LOGIN ---"
-        );
-
-        System.out.print(
-                "Enter Email: "
-        );
-
-        String email =
-                sc.nextLine();
-
-        System.out.print(
-                "Enter Password: "
-        );
-
-        String password =
-                sc.nextLine();
-
-        System.out.print(
-                "Enter Role: "
-        );
-
-        String role =
-                sc.nextLine();
-
-
-        String sql =
-                "SELECT * FROM users " +
-                "WHERE email = ? " +
-                "AND password = ? " +
-                "AND role = ?";
-
-
-        try {
-
-            Connection connection =
-                    DriverManager.getConnection(
-                            URL,
-                            USERNAME,
-                            PASSWORD
-                    );
-
-            PreparedStatement statement =
-                    connection.prepareStatement(sql);
-
-            statement.setString(1, email);
-            statement.setString(2, password);
-            statement.setString(3, role);
-
-            ResultSet result =
-                    statement.executeQuery();
-
-
-            if (result.next()) {
-
-                System.out.println(
-                        "\nLogin Successfully!"
-                );
-
-                System.out.println(
-                        "Welcome to SathanaMart"
-                );
-
-
-                if (role.equalsIgnoreCase(
-                        "Seller")) {
-
-                    System.out.println(
-                            "\n--- SELLER MODULE ---"
-                    );
-
-                    System.out.println(
-                            "Seller Login Successful"
-                    );
-
-                } else if (
-                        role.equalsIgnoreCase(
-                                "Buyer")) {
-
-                    System.out.println(
-                            "\n--- BUYER MODULE ---"
-                    );
-
-                    System.out.println(
-                            "Buyer Login Successful"
-                    );
-                }
-
-            } else {
-
-                System.out.println(
-                        "\nInvalid Email, Password or Role"
-                );
             }
 
 
-            result.close();
-            statement.close();
-            connection.close();
+            if (pair[0].equals(key)) {
 
-        } catch (Exception e) {
+                return java.net.URLDecoder.decode(
+                        pair[1],
+                        java.nio.charset.StandardCharsets.UTF_8
+                );
 
-            System.out.println(
-                    "\nLogin Failed!"
-            );
+            }
 
-            System.out.println(
-                    e.getMessage()
-            );
         }
+
+
+        return "";
+
     }
-                static void serveFile(
-                     com.sun.net.httpserver.HttpExchange exchange,
-                     String fileName,
-                     String contentType) throws java.io.IOException {
 
-                     java.nio.file.Path path =
-                     java.nio.file.Paths.get(fileName);
 
-                     byte[] data = java.nio.file.Files.readAllBytes(path);
+    // =========================================
+    // HELPER - SERVE FILE
+    // =========================================
 
-                        exchange.getResponseHeaders().set(
-                           "Content-Type",
-                             contentType
+    static void serveFile(
+            HttpExchange exchange,
+            String fileName,
+            String contentType)
+            throws java.io.IOException {
+
+
+        java.nio.file.Path path =
+                java.nio.file.Paths.get(
+                        fileName
+                );
+
+
+        byte[] data =
+                java.nio.file.Files.readAllBytes(
+                        path
+                );
+
+
+        exchange.getResponseHeaders().set(
+                "Content-Type",
+                contentType
+        );
+
+
+        exchange.sendResponseHeaders(
+                200,
+                data.length
+        );
+
+
+        exchange.getResponseBody().write(
+                data
+        );
+
+
+        exchange.close();
+
+    }
+
+
+    // =========================================
+    // HELPER - CREATE FILE ROUTE
+    // =========================================
+
+    static void createFileRoute(
+            HttpServer server,
+            String route,
+            String fileName,
+            String contentType) {
+
+
+        server.createContext(
+                route,
+                exchange -> {
+
+                    if (
+                        "GET".equalsIgnoreCase(
+                            exchange.getRequestMethod()
+                        )
+                    ) {
+
+                        serveFile(
+                                exchange,
+                                fileName,
+                                contentType
                         );
 
-                         exchange.sendResponseHeaders(200, data.length);
+                    } else {
 
-                         exchange.getResponseBody().write(data);
+                        exchange.sendResponseHeaders(
+                                405,
+                                -1
+                        );
 
-                         exchange.close();
+                        exchange.close();
+                    }
+
                 }
-        
+        );
+
+    }
+
+
+    // =========================================
+    // HELPER - SEND TEXT
+    // =========================================
+
+    static void sendText(
+            HttpExchange exchange,
+            String response)
+            throws java.io.IOException {
+
+
+        byte[] data =
+                response.getBytes(
+                        java.nio.charset.StandardCharsets.UTF_8
+                );
+
+
+        exchange.getResponseHeaders().set(
+                "Content-Type",
+                "text/plain; charset=UTF-8"
+        );
+
+
+        exchange.sendResponseHeaders(
+                200,
+                data.length
+        );
+
+
+        exchange.getResponseBody().write(
+                data
+        );
+
+
+        exchange.close();
+
+    }
+
+
+    // =========================================
+    // HELPER - SEND JSON
+    // =========================================
+
+    static void sendJson(
+            HttpExchange exchange,
+            int status,
+            String response)
+            throws java.io.IOException {
+
+
+        byte[] data =
+                response.getBytes(
+                        java.nio.charset.StandardCharsets.UTF_8
+                );
+
+
+        exchange.getResponseHeaders().set(
+                "Content-Type",
+                "application/json; charset=UTF-8"
+        );
+
+
+        exchange.sendResponseHeaders(
+                status,
+                data.length
+        );
+
+
+        exchange.getResponseBody().write(
+                data
+        );
+
+
+        exchange.close();
+
+    }
+
+
+    // =========================================
+    // HELPER - JSON ESCAPE
+    // =========================================
+
+    static String escapeJson(
+            String value) {
+
+        if (value == null) {
+
+            return "";
+
+        }
+
+
+        return value
+                .replace(
+                        "\\",
+                        "\\\\"
+                )
+                .replace(
+                        "\"",
+                        "\\\""
+                )
+                .replace(
+                        "\n",
+                        "\\n"
+                )
+                .replace(
+                        "\r",
+                        "\\r"
+                );
+
+    }
+
 }
