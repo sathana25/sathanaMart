@@ -1,119 +1,117 @@
-let products = [
+let products = [];
 
-    {
-        name: "Laptop",
-        price: 45000,
-        stock: 10,
-        category: "Electronics",
-        icon: "💻"
-    },
 
-    {
-        name: "Earphones",
-        price: 2000,
-        stock: 20,
-        category: "Accessories",
-        icon: "🎧"
-    },
-
-    {
-        name: "Mobile",
-        price: 18000,
-        stock: 15,
-        category: "Mobile",
-        icon: "📱"
-    },
-
-    {
-        name: "Smart Watch",
-        price: 3500,
-        stock: 12,
-        category: "Accessories",
-        icon: "⌚"
-    },
-
-    {
-        name: "Camera",
-        price: 35000,
-        stock: 8,
-        category: "Electronics",
-        icon: "📷"
-    }
-
-];
-
+// ==============================
+// DISPLAY PRODUCTS
+// ==============================
 
 function displayProducts() {
 
-    let productList =
-        document.getElementById("productList");
+    const productList = document.getElementById("productList");
 
     productList.innerHTML = "";
 
+    if (products.length === 0) {
+        productList.innerHTML = "<p>No products found.</p>";
+        return;
+    }
+
     products.forEach(function(product, index) {
+
+        let imageHTML = "";
+
+        if (product.image && product.image.trim() !== "") {
+
+            imageHTML = `
+                <img
+                    src="${product.image}"
+                    alt="${product.name}"
+                    style="
+                        width:150px;
+                        height:150px;
+                        object-fit:cover;
+                        display:block;
+                        margin-bottom:10px;
+                        border-radius:8px;
+                    "
+                >
+            `;
+
+        } else {
+
+            let icon = "📦";
+
+            if (product.category === "Mobile") {
+                icon = "📱";
+            } else if (product.category === "Accessories") {
+                icon = "🎧";
+            } else if (product.category === "Electronics") {
+                icon = "💻";
+            }
+
+            imageHTML = `
+                <div class="product-icon">
+                    ${icon}
+                </div>
+            `;
+        }
+
 
         productList.innerHTML += `
 
             <div class="product">
 
-                <div class="product-icon">
-                    ${product.icon}
-                </div>
+                ${imageHTML}
 
-                <h3>
-                    ${product.name}
-                </h3>
+                <h3>${product.name}</h3>
 
-                <p>
-                    Price: ₹${product.price}
-                </p>
+                <p>Price: ₹${product.price}</p>
 
-                <p>
-                    Stock: ${product.stock}
-                </p>
+                <p>Stock: ${product.stock}</p>
 
-                <p>
-                    Category: ${product.category}
-                </p>
+                <p>Category: ${product.category}</p>
 
                 <button
                     class="edit-button"
-                    onclick="editProduct(${index})">
-
+                    onclick="editProduct(${index})"
+                >
                     Edit
-
                 </button>
 
                 <button
                     class="delete-button"
-                    onclick="deleteProduct(${index})">
-
+                    onclick="deleteProduct(${index})"
+                >
                     Delete
-
                 </button>
 
             </div>
 
         `;
-
     });
-
 }
 
 
+// ==============================
+// ADD PRODUCT
+// ==============================
+
 async function addProduct() {
 
-    let name =
+    const name =
         document.getElementById("productName").value.trim();
 
-    let price =
+    const price =
         document.getElementById("productPrice").value;
 
-    let stock =
+    const stock =
         document.getElementById("productStock").value;
 
-    let category =
+    const category =
         document.getElementById("productCategory").value;
+
+    const imageFile =
+        document.getElementById("productImage").files[0];
 
 
     if (
@@ -134,219 +132,270 @@ async function addProduct() {
 
     try {
 
-        let data = new URLSearchParams();
+        let imageData = "";
+
+
+        // Image is optional
+        if (imageFile) {
+
+            imageData =
+                await convertImageToBase64(imageFile);
+
+        }
+
+
+        const data = new URLSearchParams();
 
         data.append("name", name);
         data.append("price", price);
         data.append("stock", stock);
         data.append("category", category);
+        data.append("image", imageData);
 
 
-        let response = await fetch(
-            "http://localhost:8080/products",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type":
-                        "application/x-www-form-urlencoded"
-                },
-                body: data.toString()
-            }
-        );
+        const response =
+            await fetch(
+                "/products",
+                {
+                    method: "POST",
 
+                    headers: {
+                        "Content-Type":
+                            "application/x-www-form-urlencoded"
+                    },
 
-        let result = await response.text();
-
-
-        if (response.ok) {
-
-            let icon = "📦";
-
-
-            if (category === "Mobile") {
-                icon = "📱";
-            }
-
-            else if (category === "Accessories") {
-                icon = "🎧";
-            }
-
-            else if (category === "Electronics") {
-                icon = "💻";
-            }
-
-
-            products.push({
-
-                name: name,
-
-                price: Number(price),
-
-                stock: Number(stock),
-
-                category: category,
-
-                icon: icon
-
-            });
-
-
-            displayProducts();
-
-
-            document.getElementById("productName").value = "";
-
-            document.getElementById("productPrice").value = "";
-
-            document.getElementById("productStock").value = "";
-
-            document.getElementById("productCategory").value = "";
-
-
-            showMessage(
-                result,
-                "success"
+                    body: data.toString()
+                }
             );
 
-        } else {
 
-            showMessage(
-                "Product addition failed.",
-                "error"
-            );
-
-        }
-
-    } catch (error) {
-
-        console.log(error);
-
-        showMessage(
-            "Unable to connect to Java backend.",
-            "error"
-        );
-
-    }
-
-}
-
-
-async function editProduct(index) {
-
-    let product = products[index];
-
-
-    let newName =
-        prompt(
-            "Enter Product Name:",
-            product.name
-        );
-
-
-    if (newName === null || newName.trim() === "") {
-        return;
-    }
-
-
-    let newPrice =
-        prompt(
-            "Enter Price:",
-            product.price
-        );
-
-
-    if (newPrice === null || newPrice.trim() === "") {
-        return;
-    }
-
-
-    let newStock =
-        prompt(
-            "Enter Stock:",
-            product.stock
-        );
-
-
-    if (newStock === null || newStock.trim() === "") {
-        return;
-    }
-
-
-    let data = new URLSearchParams();
-
-    data.append("id", product.id);
-
-    data.append("name", newName);
-
-    data.append("price", newPrice);
-
-    data.append("stock", newStock);
-
-    data.append("category", product.category);
-
-
-    try {
-
-        let response = await fetch(
-            "http://localhost:8080/products",
-            {
-                method: "PUT",
-                headers: {
-                    "Content-Type":
-                        "application/x-www-form-urlencoded"
-                },
-                body: data.toString()
-            }
-        );
-
-
-        let result =
+        const result =
             await response.text();
 
 
         if (response.ok) {
 
             showMessage(
-                result,
+                "Product added successfully!",
                 "success"
             );
 
-            loadProducts();
+
+            document.getElementById(
+                "productName"
+            ).value = "";
+
+            document.getElementById(
+                "productPrice"
+            ).value = "";
+
+            document.getElementById(
+                "productStock"
+            ).value = "";
+
+            document.getElementById(
+                "productCategory"
+            ).value = "";
+
+            document.getElementById(
+                "productImage"
+            ).value = "";
+
+
+            await loadProducts();
 
         } else {
 
-            showMessage(
-                "Product update failed.",
-                "error"
+            console.log(
+                "Backend Error:",
+                result
             );
 
+            showMessage(
+                "Product addition failed: " + result,
+                "error"
+            );
         }
+
 
     } catch (error) {
 
-        console.log(error);
+        console.log(
+            "Product Add Error:",
+            error
+        );
 
         showMessage(
             "Unable to connect to Java backend.",
             "error"
         );
-
     }
-
 }
 
 
-async function deleteProduct(index) {
+// ==============================
+// CONVERT IMAGE TO BASE64
+// ==============================
 
-    let product =
+function convertImageToBase64(file) {
+
+    return new Promise(
+        function(resolve, reject) {
+
+            const reader =
+                new FileReader();
+
+            reader.onload =
+                function() {
+                    resolve(reader.result);
+                };
+
+            reader.onerror =
+                function(error) {
+                    reject(error);
+                };
+
+            reader.readAsDataURL(file);
+        }
+    );
+}
+
+
+// ==============================
+// EDIT PRODUCT
+// ==============================
+
+async function editProduct(index) {
+
+    const product =
         products[index];
 
 
-    let confirmDelete =
+    const newName =
+        prompt(
+            "Enter Product Name:",
+            product.name
+        );
+
+
+    if (
+        newName === null ||
+        newName.trim() === ""
+    ) {
+        return;
+    }
+
+
+    const newPrice =
+        prompt(
+            "Enter Price:",
+            product.price
+        );
+
+
+    if (
+        newPrice === null ||
+        newPrice.trim() === ""
+    ) {
+        return;
+    }
+
+
+    const newStock =
+        prompt(
+            "Enter Stock:",
+            product.stock
+        );
+
+
+    if (
+        newStock === null ||
+        newStock.trim() === ""
+    ) {
+        return;
+    }
+
+
+    const data =
+        new URLSearchParams();
+
+
+    data.append("id", product.id);
+    data.append("name", newName.trim());
+    data.append("price", newPrice);
+    data.append("stock", newStock);
+    data.append("category", product.category);
+    data.append("image", product.image || "");
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/products",
+                {
+                    method: "PUT",
+
+                    headers: {
+                        "Content-Type":
+                            "application/x-www-form-urlencoded"
+                    },
+
+                    body: data.toString()
+                }
+            );
+
+
+        const result =
+            await response.text();
+
+
+        if (response.ok) {
+
+            showMessage(
+                "Product updated successfully!",
+                "success"
+            );
+
+            await loadProducts();
+
+        } else {
+
+            showMessage(
+                "Product update failed: " + result,
+                "error"
+            );
+        }
+
+
+    } catch (error) {
+
+        console.log(
+            "Edit Product Error:",
+            error
+        );
+
+        showMessage(
+            "Unable to connect to Java backend.",
+            "error"
+        );
+    }
+}
+
+
+// ==============================
+// DELETE PRODUCT
+// ==============================
+
+async function deleteProduct(index) {
+
+    const product =
+        products[index];
+
+
+    const confirmDelete =
         confirm(
-            "Delete " +
-            product.name +
-            "?"
+            "Delete " + product.name + "?"
         );
 
 
@@ -355,113 +404,121 @@ async function deleteProduct(index) {
     }
 
 
-    let data = new URLSearchParams();
+    const data =
+        new URLSearchParams();
 
-    data.append("id", product.id);
+
+    data.append(
+        "id",
+        product.id
+    );
 
 
     try {
 
-        let response = await fetch(
-            "http://localhost:8080/products",
-            {
-                method: "DELETE",
-                headers: {
-                    "Content-Type":
-                        "application/x-www-form-urlencoded"
-                },
-                body: data.toString()
-            }
-        );
+        const response =
+            await fetch(
+                "/products",
+                {
+                    method: "DELETE",
+
+                    headers: {
+                        "Content-Type":
+                            "application/x-www-form-urlencoded"
+                    },
+
+                    body: data.toString()
+                }
+            );
 
 
-        let result =
+        const result =
             await response.text();
 
 
         if (response.ok) {
 
             showMessage(
-                result,
+                "Product deleted successfully!",
                 "success"
             );
 
-            loadProducts();
+            await loadProducts();
 
         } else {
 
             showMessage(
-                "Product deletion failed.",
+                "Product deletion failed: " + result,
                 "error"
             );
-
         }
+
 
     } catch (error) {
 
-        console.log(error);
+        console.log(
+            "Delete Product Error:",
+            error
+        );
 
         showMessage(
             "Unable to connect to Java backend.",
             "error"
         );
-
     }
-
 }
 
 
+// ==============================
+// SHOW MESSAGE
+// ==============================
+
 function showMessage(text, type) {
 
-    let message =
+    const message =
         document.getElementById("message");
 
     message.innerHTML = text;
 
     message.className = type;
-
 }
 
+
+// ==============================
+// BACK TO LOGIN
+// ==============================
 
 function goBack() {
 
-    window.location.href =
-        "index.html";
-
+    window.location.href = "/";
 }
 
+
+// ==============================
+// LOAD PRODUCTS
+// ==============================
 
 async function loadProducts() {
 
     try {
 
-        let response = await fetch(
-            "http://localhost:8080/products"
-        );
+        const response =
+            await fetch("/products");
 
 
-        let data =
+        if (!response.ok) {
+            throw new Error(
+                "Product request failed"
+            );
+        }
+
+
+        const data =
             await response.json();
 
 
         products =
             data.map(function(product) {
-
-                let icon = "📦";
-
-
-                if (product.category === "Mobile") {
-                    icon = "📱";
-                }
-
-                else if (product.category === "Accessories") {
-                    icon = "🎧";
-                }
-
-                else if (product.category === "Electronics") {
-                    icon = "💻";
-                }
-
 
                 return {
 
@@ -475,8 +532,8 @@ async function loadProducts() {
 
                     category: product.category,
 
-                    icon: icon
-
+                    image:
+                        product.image || ""
                 };
 
             });
@@ -484,14 +541,19 @@ async function loadProducts() {
 
         displayProducts();
 
+
     } catch (error) {
 
-        console.log(error);
+        console.log(
+            "Product Load Error:",
+            error
+        );
+
+
+        products = [];
 
         displayProducts();
-
     }
-
 }
 
 
@@ -503,25 +565,22 @@ async function loadOrders() {
 
     try {
 
-        let response = await fetch(
-            "http://localhost:8080/orders"
-        );
+        const response =
+            await fetch("/orders");
 
 
         if (!response.ok) {
-
             throw new Error(
-                "Unable to load orders"
+                "Orders request failed"
             );
-
         }
 
 
-        let orders =
+        const orders =
             await response.json();
 
 
-        let orderList =
+        const orderList =
             document.getElementById("orderList");
 
 
@@ -567,37 +626,82 @@ async function loadOrders() {
                         ₹${order.total}
                     </p>
 
-                    <p>            
-                       Status:
-                      <select onchange="updateOrderStatus(${order.id}, this.value)">
-                        <option value="Placed" ${order.status === "Placed" ? "selected" : ""}>
-                           Placed
-                        </option>
+                    <p>
+                        Status:
 
-                        <option value="Processing" ${order.status === "Processing" ? "selected" : ""}>
-                          Processing
-                        </option>
+                        <select
+                            onchange="
+                                updateOrderStatus(
+                                    ${order.id},
+                                    this.value
+                                )
+                            "
+                        >
 
-                        <option value="Shipped" ${order.status === "Shipped" ? "selected" : ""}>
-                           Shipped
-                        </option>
+                            <option
+                                value="Placed"
+                                ${
+                                    order.status === "Placed"
+                                    ? "selected"
+                                    : ""
+                                }
+                            >
+                                Placed
+                            </option>
 
-                        <option value="Delivered" ${order.status === "Delivered" ? "selected" : ""}>
-                           Delivered
-                        </option>
+                            <option
+                                value="Processing"
+                                ${
+                                    order.status === "Processing"
+                                    ? "selected"
+                                    : ""
+                                }
+                            >
+                                Processing
+                            </option>
 
-                        <option value="Cancelled" ${order.status === "Cancelled" ? "selected" : ""}>
-                          Cancelled
-                       </option>
-                       </select>
+                            <option
+                                value="Shipped"
+                                ${
+                                    order.status === "Shipped"
+                                    ? "selected"
+                                    : ""
+                                }
+                            >
+                                Shipped
+                            </option>
+
+                            <option
+                                value="Delivered"
+                                ${
+                                    order.status === "Delivered"
+                                    ? "selected"
+                                    : ""
+                                }
+                            >
+                                Delivered
+                            </option>
+
+                            <option
+                                value="Cancelled"
+                                ${
+                                    order.status === "Cancelled"
+                                    ? "selected"
+                                    : ""
+                                }
+                            >
+                                Cancelled
+                            </option>
+
+                        </select>
+
                     </p>
-                
 
                 </div>
 
             `;
-
         });
+
 
     } catch (error) {
 
@@ -607,56 +711,70 @@ async function loadOrders() {
         );
 
 
-        let orderList =
-            document.getElementById("orderList");
-
-
-        orderList.innerHTML =
+        document.getElementById(
+            "orderList"
+        ).innerHTML =
             "<p>Unable to load orders.</p>";
-
     }
-
 }
-async function updateOrderStatus(orderId, status) {
 
-    let data = new URLSearchParams();
+
+// ==============================
+// UPDATE ORDER STATUS
+// ==============================
+
+async function updateOrderStatus(
+    orderId,
+    status
+) {
+
+    const data =
+        new URLSearchParams();
+
 
     data.append("id", orderId);
     data.append("status", status);
 
+
     try {
 
-        let response = await fetch(
-            "http://localhost:8080/orders",
-            {
-                method: "PUT",
-                headers: {
-                    "Content-Type":
-                        "application/x-www-form-urlencoded"
-                },
-                body: data.toString()
-            }
-        );
+        const response =
+            await fetch(
+                "/orders",
+                {
+                    method: "PUT",
 
-        let result = await response.text();
+                    headers: {
+                        "Content-Type":
+                            "application/x-www-form-urlencoded"
+                    },
+
+                    body: data.toString()
+                }
+            );
+
+
+        const result =
+            await response.text();
+
 
         if (response.ok) {
 
             showMessage(
-                result,
+                "Order status updated successfully!",
                 "success"
             );
 
-            loadOrders();
+            await loadOrders();
 
         } else {
 
             showMessage(
-                "Order status update failed.",
+                "Order status update failed: " + result,
                 "error"
             );
-
         }
+
 
     } catch (error) {
 
@@ -673,6 +791,9 @@ async function updateOrderStatus(orderId, status) {
 }
 
 
+// ==============================
+// START
+// ==============================
 
 loadProducts();
 
