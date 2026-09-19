@@ -16,10 +16,23 @@ function loadProducts() {
 
                 productList.innerHTML += `
                     <div class="product">
-                        <h3>${product.name}</h3>
-                        <p>Price: ₹${product.price}</p>
-                        <p>Stock: ${product.stock}</p>
-                        <p>Category: ${product.category}</p>
+
+                        <h3>
+                            ${product.name}
+                        </h3>
+
+                        <p>
+                            Price: ₹${product.price}
+                        </p>
+
+                        <p>
+                            Stock: ${product.stock}
+                        </p>
+
+                        <p>
+                            Category: ${product.category}
+                        </p>
+
                     </div>
                 `;
             });
@@ -27,8 +40,10 @@ function loadProducts() {
         })
         .catch(error => {
 
-            console.log("Product Error:", error);
-
+            console.log(
+                "Product Error:",
+                error
+            );
         });
 }
 
@@ -65,7 +80,8 @@ function loadOrders() {
                         </h3>
 
                         <p>
-                            Product: ${order.product_name}
+                            Product:
+                            ${order.product_name}
                         </p>
 
                         <p>
@@ -81,7 +97,52 @@ function loadOrders() {
                         </p>
 
                         <p>
-                            Status: ${order.status}
+                            Status:
+                            
+                            <select
+                                onchange="updateOrderStatus(
+                                    ${order.id},
+                                    this.value
+                                )"
+                            >
+
+                                <option
+                                    value="Placed"
+                                    ${order.status === "Placed" ? "selected" : ""}
+                                >
+                                    Placed
+                                </option>
+
+                                <option
+                                    value="Processing"
+                                    ${order.status === "Processing" ? "selected" : ""}
+                                >
+                                    Processing
+                                </option>
+
+                                <option
+                                    value="Shipped"
+                                    ${order.status === "Shipped" ? "selected" : ""}
+                                >
+                                    Shipped
+                                </option>
+
+                                <option
+                                    value="Delivered"
+                                    ${order.status === "Delivered" ? "selected" : ""}
+                                >
+                                    Delivered
+                                </option>
+
+                                <option
+                                    value="Cancelled"
+                                    ${order.status === "Cancelled" ? "selected" : ""}
+                                >
+                                    Cancelled
+                                </option>
+
+                            </select>
+
                         </p>
 
                     </div>
@@ -91,9 +152,50 @@ function loadOrders() {
         })
         .catch(error => {
 
-            console.log("Order Error:", error);
-
+            console.log(
+                "Order Error:",
+                error
+            );
         });
+}
+
+
+function updateOrderStatus(orderId, status) {
+
+    fetch("/orders", {
+
+        method: "PUT",
+
+        headers: {
+            "Content-Type":
+                "application/x-www-form-urlencoded"
+        },
+
+        body:
+            "id=" +
+            orderId +
+            "&status=" +
+            encodeURIComponent(status)
+
+    })
+
+    .then(response => response.text())
+
+    .then(message => {
+
+        alert(message);
+
+        loadOrders();
+
+    })
+
+    .catch(error => {
+
+        console.log(
+            "Order Status Error:",
+            error
+        );
+    });
 }
 
 
@@ -140,6 +242,12 @@ function loadUsers() {
                             Role: ${user.role}
                         </p>
 
+                        <button
+                            onclick="deleteUser(${user.id})"
+                        >
+                            Delete User
+                        </button>
+
                     </div>
                 `;
             });
@@ -147,12 +255,60 @@ function loadUsers() {
         })
         .catch(error => {
 
-            console.log("User Error:", error);
-
+            console.log(
+                "User Error:",
+                error
+            );
         });
 }
 
 
+function deleteUser(userId) {
+
+    if (
+        !confirm(
+            "Are you sure you want to delete this user?"
+        )
+    ) {
+        return;
+    }
+
+    fetch("/users", {
+
+        method: "DELETE",
+
+        headers: {
+            "Content-Type":
+                "application/x-www-form-urlencoded"
+        },
+
+        body:
+            "id=" + userId
+
+    })
+
+    .then(response => response.text())
+
+    .then(message => {
+
+        alert(message);
+
+        loadUsers();
+
+    })
+
+    .catch(error => {
+
+        console.log(
+            "Delete User Error:",
+            error
+        );
+    });
+}
+
+
 loadProducts();
+
 loadOrders();
+
 loadUsers();

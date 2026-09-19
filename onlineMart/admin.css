@@ -44,3 +44,13 @@ h2 {
     padding: 15px;
     margin-bottom: 10px;
 }
+.user {
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+.user button {
+    padding: 8px 15px;
+    cursor: pointer;
+}

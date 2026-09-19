@@ -1288,118 +1288,116 @@ public class SathanaMartBackend {
  
           server.createContext("/users", exchange -> {
 
-                String method = exchange.getRequestMethod();
+    String method = exchange.getRequestMethod();
 
-                if ("GET".equalsIgnoreCase(method)) {
+    if ("GET".equalsIgnoreCase(method)) {
 
-                    StringBuilder json = new StringBuilder();
-                    json.append("[");
+        StringBuilder json = new StringBuilder();
+        json.append("[");
 
-                    try {
+        try {
 
-                        Connection connection =
-                                DriverManager.getConnection(
-                                        URL,
-                                        USERNAME,
-                                        PASSWORD
-                                );
+            Connection connection =
+                    DriverManager.getConnection(URL, USERNAME, PASSWORD);
 
-                        String sql =
-                                "SELECT id, name, email, role " +
-                                "FROM users ORDER BY id DESC";
+            String sql =
+                    "SELECT id, name, email, role FROM users ORDER BY id DESC";
 
-                        PreparedStatement statement =
-                                connection.prepareStatement(sql);
+            PreparedStatement statement = connection.prepareStatement(sql);
+            ResultSet resultSet = statement.executeQuery();
+            boolean first = true;
 
-                        ResultSet resultSet =
-                                statement.executeQuery();
+            while (resultSet.next()) {
 
-                        boolean first = true;
-
-                        while (resultSet.next()) {
-
-                            if (!first) {
-                                json.append(",");
-                            }
-
-                            json.append("{");
-
-                            json.append("\"id\":")
-                                    .append(resultSet.getInt("id"))
-                                    .append(",");
-
-                            json.append("\"name\":\"")
-                                    .append(resultSet.getString("name"))
-                                    .append("\",");
-
-                            json.append("\"email\":\"")
-                                    .append(resultSet.getString("email"))
-                                    .append("\",");
-
-                            json.append("\"role\":\"")
-                                    .append(resultSet.getString("role"))
-                                    .append("\"");
-
-                            json.append("}");
-
-                            first = false;
-                        }
-
-                        json.append("]");
-
-                        resultSet.close();
-                        statement.close();
-                        connection.close();
-
-                        String response = json.toString();
-
-                        exchange.getResponseHeaders().set(
-                                "Content-Type",
-                                "application/json"
-                        );
-
-                        exchange.sendResponseHeaders(
-                                200,
-                                response.length()
-                        );
-
-                        java.io.OutputStream output =
-                                exchange.getResponseBody();
-
-                        output.write(response.getBytes());
-                        output.close();
-
-                    } catch (Exception e) {
-
-                        String response = "[]";
-
-                        exchange.getResponseHeaders().set(
-                                "Content-Type",
-                                "application/json"
-                        );
-
-                        exchange.sendResponseHeaders(
-                                500,
-                                response.length()
-                        );
-
-                        java.io.OutputStream output =
-                                exchange.getResponseBody();
-
-                        output.write(response.getBytes());
-                        output.close();
-                    }
-
-                } else {
-
-                    exchange.sendResponseHeaders(405, -1);
-                    exchange.close();
+                if (!first) {
+                    json.append(",");
                 }
 
-            });
+                json.append("{");
+                json.append("\"id\":").append(resultSet.getInt("id")).append(",");
+                json.append("\"name\":\"").append(resultSet.getString("name")).append("\",");
+                json.append("\"email\":\"").append(resultSet.getString("email")).append("\",");
+                json.append("\"role\":\"").append(resultSet.getString("role")).append("\"");
+                json.append("}");
+                first = false;
+            }
 
+            json.append("]");
+            resultSet.close();
+            statement.close();
+            connection.close();
 
-            server.createContext("/admin.html", exchange -> {
+            String response = json.toString();
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, response.length());
+            java.io.OutputStream output = exchange.getResponseBody();
+            output.write(response.getBytes());
+            output.close();
+
+        } catch (Exception e) {
+
+            String response = "[]";
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(500, response.length());
+            java.io.OutputStream output = exchange.getResponseBody();
+            output.write(response.getBytes());
+            output.close();
+        }
+
+    } else if ("DELETE".equalsIgnoreCase(method)) {
+
+        String requestData = new String(exchange.getRequestBody().readAllBytes());
+        String[] values = requestData.split("&");
+        String id = "";
+
+        for (String value : values) {
+            String[] pair = value.split("=", 2);
+            if (pair.length < 2) {
+                continue;
+            }
+            String key = pair[0];
+            String data = java.net.URLDecoder.decode(pair[1], "UTF-8");
+            if (key.equals("id")) {
+                id = data;
+            }
+        }
+
+        String response;
+
+        try {
+            Connection connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+            String sql = "DELETE FROM users WHERE id = ?";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setInt(1, Integer.parseInt(id));
+            int result = statement.executeUpdate();
+
+            if (result > 0) {
+                response = "User Deleted Successfully!";
+            } else {
+                response = "User Delete Failed!";
+            }
+
+            statement.close();
+            connection.close();
+
+        } catch (Exception e) {
+            response = "User Delete Failed!";
+        }
+
+        exchange.getResponseHeaders().set("Content-Type", "text/plain");
+        exchange.sendResponseHeaders(200, response.length());
+        java.io.OutputStream output = exchange.getResponseBody();
+        output.write(response.getBytes());
+        output.close();
+
+    } else {
+        exchange.sendResponseHeaders(405, -1);
+        exchange.close();
+    }
+
+});
+
+server.createContext("/admin.html", exchange -> {
                 if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
                    serveFile(exchange, "admin.html", "text/html");
                 } else {
