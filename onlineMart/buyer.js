@@ -1,4 +1,12 @@
-let cart = JSON.parse(localStorage.getItem("sathanaCart")) || [];
+let cart =
+    JSON.parse(
+        localStorage.getItem("sathanaCart")
+    ) || [];
+
+let wishlist =
+    JSON.parse(
+        localStorage.getItem("sathanaWishlist")
+    ) || [];
 
 let allProducts = [];
 
@@ -76,13 +84,42 @@ function displayProducts(products) {
         }
 
 
+        // Check wishlist
+        let isWishlisted =
+            wishlist.some(function(item) {
+
+                return item.id === product.id;
+
+            });
+
+
+        let heart =
+            isWishlisted ? "❤️" : "♡";
+
+
         productList.innerHTML += `
 
             <div class="product">
 
                 ${imageHTML}
 
-                <h3>${product.name}</h3>
+                <button
+                    class="wishlist-heart"
+                    onclick="
+                        toggleWishlist(
+                            ${product.id},
+                            '${product.name}',
+                            ${product.price},
+                            '${product.image || ""}'
+                        )
+                    "
+                >
+                    ${heart}
+                </button>
+
+                <h3>
+                    ${product.name}
+                </h3>
 
                 <p>
                     Price: ₹${product.price}
@@ -97,12 +134,14 @@ function displayProducts(products) {
                 </p>
 
                 <button
-                    onclick="addToCart(
-                        ${product.id},
-                        '${product.name}',
-                        ${product.price},
-                        '${product.image || ""}'
-                    )"
+                    onclick="
+                        addToCart(
+                            ${product.id},
+                            '${product.name}',
+                            ${product.price},
+                            '${product.image || ""}'
+                        )
+                    "
                 >
                     Add to Cart
                 </button>
@@ -118,26 +157,112 @@ function displayProducts(products) {
 
 
 // ==============================
-// SEARCH + CATEGORY FILTER
+// WISHLIST
 // ==============================
 
-function filterProducts() {
+function toggleWishlist(
+    id,
+    name,
+    price,
+    image
+) {
 
-    let searchText =
-        document
-            .getElementById("searchBox")
-            .value
-            .toLowerCase();
+    let existingProduct =
+        wishlist.find(function(product) {
+
+            return product.id === id;
+
+        });
 
 
-    let selectedCategory =
-        document
-            .getElementById("categoryFilter")
-            .value;
+    if (existingProduct) {
+
+        // Remove from wishlist
+
+        wishlist =
+            wishlist.filter(function(product) {
+
+                return product.id !== id;
+
+            });
+
+    } else {
+
+        // Add to wishlist
+
+        wishlist.push({
+
+            id: id,
+
+            name: name,
+
+            price: price,
+
+            image: image
+
+        });
+
+    }
 
 
-    let filteredProducts =
-        allProducts.filter(function(product) {
+    saveWishlist();
+
+    displayProducts(
+        getFilteredProducts()
+    );
+}
+
+
+// ==============================
+// SAVE WISHLIST
+// ==============================
+
+function saveWishlist() {
+
+    localStorage.setItem(
+        "sathanaWishlist",
+        JSON.stringify(wishlist)
+    );
+}
+
+
+// ==============================
+// GET FILTERED PRODUCTS
+// ==============================
+
+function getFilteredProducts() {
+
+    let searchBox =
+        document.getElementById("searchBox");
+
+    let categoryFilter =
+        document.getElementById("categoryFilter");
+
+
+    let searchText = "";
+
+    let selectedCategory = "All";
+
+
+    if (searchBox) {
+
+        searchText =
+            searchBox.value
+                .toLowerCase();
+
+    }
+
+
+    if (categoryFilter) {
+
+        selectedCategory =
+            categoryFilter.value;
+
+    }
+
+
+    return allProducts.filter(
+        function(product) {
 
             let nameMatch =
                 product.name
@@ -150,12 +275,38 @@ function filterProducts() {
                 product.category === selectedCategory;
 
 
-            return nameMatch && categoryMatch;
+            return nameMatch &&
+                   categoryMatch;
 
-        });
+        }
+    );
+}
 
 
-    displayProducts(filteredProducts);
+// ==============================
+// SEARCH + CATEGORY FILTER
+// ==============================
+
+function filterProducts() {
+
+    let filteredProducts =
+        getFilteredProducts();
+
+
+    displayProducts(
+        filteredProducts
+    );
+}
+
+
+// ==============================
+// GO TO WISHLIST
+// ==============================
+
+function goToWishlist() {
+
+    window.location.href =
+        "/wishlist.html";
 }
 
 
@@ -163,7 +314,12 @@ function filterProducts() {
 // ADD TO CART
 // ==============================
 
-function addToCart(id, name, price, image) {
+function addToCart(
+    id,
+    name,
+    price,
+    image
+) {
 
     let existingProduct =
         cart.find(function(product) {
@@ -185,14 +341,17 @@ function addToCart(id, name, price, image) {
 
         if (
             originalProduct &&
-            existingProduct.quantity < originalProduct.stock
+            existingProduct.quantity <
+            originalProduct.stock
         ) {
 
             existingProduct.quantity++;
 
         } else {
 
-            alert("Stock limit reached!");
+            alert(
+                "Stock limit reached!"
+            );
 
             return;
         }
@@ -218,7 +377,9 @@ function addToCart(id, name, price, image) {
 
     saveCart();
 
-    alert("Product added to cart!");
+    alert(
+        "Product added to cart!"
+    );
 
     displayCart();
 }
@@ -244,14 +405,20 @@ function saveCart() {
 function displayCart() {
 
     let cartList =
-        document.getElementById("cartList");
+        document.getElementById(
+            "cartList"
+        );
 
     let cartTotal =
-        document.getElementById("cartTotal");
+        document.getElementById(
+            "cartTotal"
+        );
 
 
     if (!cartList || !cartTotal) {
+
         return;
+
     }
 
 
@@ -279,14 +446,19 @@ function displayCart() {
                 </h3>
 
                 <p>
-                    Price: ₹${product.price}
+                    Price:
+                    ₹${product.price}
                 </p>
 
                 <p>
                     Quantity:
-                    
+
                     <button
-                        onclick="decreaseQuantity(${product.id})"
+                        onclick="
+                            decreaseQuantity(
+                                ${product.id}
+                            )
+                        "
                     >
                         -
                     </button>
@@ -294,7 +466,11 @@ function displayCart() {
                     ${product.quantity}
 
                     <button
-                        onclick="increaseQuantity(${product.id})"
+                        onclick="
+                            increaseQuantity(
+                                ${product.id}
+                            )
+                        "
                     >
                         +
                     </button>
@@ -302,11 +478,16 @@ function displayCart() {
                 </p>
 
                 <p>
-                    Subtotal: ₹${productTotal}
+                    Subtotal:
+                    ₹${productTotal}
                 </p>
 
                 <button
-                    onclick="removeFromCart(${product.id})"
+                    onclick="
+                        removeFromCart(
+                            ${product.id}
+                        )
+                    "
                 >
                     Remove
                 </button>
@@ -347,7 +528,10 @@ function increaseQuantity(id) {
         });
 
 
-    if (cartProduct && originalProduct) {
+    if (
+        cartProduct &&
+        originalProduct
+    ) {
 
         if (
             cartProduct.quantity <
@@ -362,7 +546,9 @@ function increaseQuantity(id) {
 
         } else {
 
-            alert("Stock limit reached!");
+            alert(
+                "Stock limit reached!"
+            );
 
         }
 
@@ -392,11 +578,14 @@ function decreaseQuantity(id) {
 
         } else {
 
-            cart = cart.filter(function(product) {
+            cart =
+                cart.filter(
+                    function(product) {
 
-                return product.id !== id;
+                        return product.id !== id;
 
-            });
+                    }
+                );
 
         }
 
@@ -415,11 +604,14 @@ function decreaseQuantity(id) {
 
 function removeFromCart(id) {
 
-    cart = cart.filter(function(product) {
+    cart =
+        cart.filter(
+            function(product) {
 
-        return product.id !== id;
+                return product.id !== id;
 
-    });
+            }
+        );
 
 
     saveCart();
@@ -434,7 +626,8 @@ function removeFromCart(id) {
 
 function goToCart() {
 
-    window.location.href = "/cart.html";
+    window.location.href =
+        "/cart.html";
 }
 
 
@@ -446,7 +639,9 @@ function placeOrder() {
 
     if (cart.length === 0) {
 
-        alert("Cart is empty!");
+        alert(
+            "Cart is empty!"
+        );
 
         return;
     }
@@ -476,20 +671,23 @@ function placeOrder() {
                 productTotal;
 
 
-            return fetch("/orders", {
+            return fetch(
+                "/orders",
+                {
 
-                method: "POST",
+                    method: "POST",
 
-                headers: {
+                    headers: {
 
-                    "Content-Type":
-                        "application/x-www-form-urlencoded"
+                        "Content-Type":
+                            "application/x-www-form-urlencoded"
 
-                },
+                    },
 
-                body: data
+                    body: data
 
-            })
+                }
+            )
 
             .then(response =>
                 response.text()

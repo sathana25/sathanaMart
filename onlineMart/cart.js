@@ -136,5 +136,112 @@ function goBack() {
     window.location.href = "/buyer.html";
 }
 
+// ==============================
+// PLACE ORDER
+// ==============================
+
+function placeOrder() {
+
+    let cart =
+        JSON.parse(
+            localStorage.getItem("sathanaCart")
+        ) || [];
+
+
+    if (cart.length === 0) {
+
+        alert("Cart is empty!");
+
+        return;
+    }
+
+
+    let requests =
+        cart.map(function(product) {
+
+            let productTotal =
+                product.price *
+                product.quantity;
+
+
+            let data =
+                "product_name=" +
+                encodeURIComponent(
+                    product.name
+                ) +
+
+                "&price=" +
+                product.price +
+
+                "&quantity=" +
+                product.quantity +
+
+                "&total=" +
+                productTotal;
+
+
+            return fetch("/orders", {
+
+                method: "POST",
+
+                headers: {
+
+                    "Content-Type":
+                        "application/x-www-form-urlencoded"
+
+                },
+
+                body: data
+
+            })
+
+            .then(function(response) {
+
+                return response.text();
+
+            });
+
+        });
+
+
+     Promise.all(requests)
+
+        .then(function(results) {
+
+            alert(
+                "Order Placed Successfully!"
+            );
+
+
+            // Clear cart
+
+            localStorage.removeItem(
+                "sathanaCart"
+            );
+
+
+            // Reload cart page
+
+            location.reload();
+
+        })
+
+        .catch(function(error) {
+
+            console.log(
+                "Order Error:",
+                error
+            );
+
+
+            alert(
+                "Order Placement Failed!"
+            );
+
+     
+        });
+    
+}
+
 
 displayCart();
