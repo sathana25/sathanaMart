@@ -1144,8 +1144,9 @@ public class SathanaMartBackend {
                                 );
 
                         String sql =
-                                "SELECT id, product_name, price, quantity, total, status " +
-                                "FROM orders ORDER BY id DESC";
+                                "SELECT id, product_name, price, quantity, total, status, order_date " +
+                                 "FROM orders ORDER BY id DESC";
+                               
 
                         PreparedStatement statement =
                                 connection.prepareStatement(sql);
@@ -1185,7 +1186,11 @@ public class SathanaMartBackend {
 
                             json.append("\"status\":\"")
                                     .append(resultSet.getString("status"))
-                                    .append("\"");
+                                    .append("\",");
+
+                            json.append("\"order_date\":\"")
+                                    .append(resultSet.getString("order_date"))
+                                    .append("\"");       
 
                             json.append("}");
 

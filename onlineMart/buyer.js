@@ -444,6 +444,11 @@ function loadOrders() {
                             ${order.status}
                         </p>
 
+                        <p>
+                            Order Date:
+                            ${order.order_date}
+                       </p>
+
                     </div>
 
                     <hr>
