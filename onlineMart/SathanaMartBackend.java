@@ -963,14 +963,22 @@ private static void addProductReview(HttpExchange ex)
 
             try {
                 Path path = resolveFile(fileName);
+                byte[] bytes;
 
-                if (!Files.exists(path)) {
-                    send(ex, 404, "File not found: " + fileName,
-                            "text/plain; charset=UTF-8");
-                    return;
+                if (Files.exists(path)) {
+                    bytes = Files.readAllBytes(path);
+                } else {
+                    // Fallback: files bundled inside the jar (used on Railway).
+                    try (java.io.InputStream in =
+                            SathanaMartBackend.class.getResourceAsStream("/" + fileName)) {
+                        if (in == null) {
+                            send(ex, 404, "File not found: " + fileName,
+                                    "text/plain; charset=UTF-8");
+                            return;
+                        }
+                        bytes = in.readAllBytes();
+                    }
                 }
-
-                byte[] bytes = Files.readAllBytes(path);
 
                 ex.getResponseHeaders().set("Content-Type",
                         contentType + "; charset=UTF-8");

@@ -33,6 +33,16 @@
         <sourceDirectory>onlineMart</sourceDirectory>
         <finalName>sathanamart</finalName>
 
+        <!-- Put the HTML/CSS/JS inside the jar so it is always available -->
+        <resources>
+            <resource>
+                <directory>onlineMart</directory>
+                <excludes>
+                    <exclude>**/*.java</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
