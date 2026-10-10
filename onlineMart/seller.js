@@ -7,20 +7,30 @@ let products = [];
 
 function displayProducts() {
 
-    const productList = document.getElementById("productList");
+    const productList =
+        document.getElementById("productList");
 
     productList.innerHTML = "";
 
     if (products.length === 0) {
-        productList.innerHTML = "<p>No products found.</p>";
+
+        productList.innerHTML =
+            "<p>No products found.</p>";
+
         return;
     }
+
 
     products.forEach(function(product, index) {
 
         let imageHTML = "";
 
-        if (product.image && product.image.trim() !== "") {
+
+        // PRODUCT IMAGE
+        if (
+            product.image &&
+            product.image.trim() !== ""
+        ) {
 
             imageHTML = `
                 <img
@@ -37,19 +47,90 @@ function displayProducts() {
                 >
             `;
 
-        } else {
+        }
+
+        else {
 
             let icon = "📦";
 
-            if (product.category === "Mobile") {
+
+            if (
+                product.category &&
+                product.category.toLowerCase() === "mobile"
+            ) {
                 icon = "📱";
             }
-            else if (product.category === "Accessories") {
+
+            else if (
+                product.category &&
+                product.category.toLowerCase() === "accessories"
+            ) {
                 icon = "🎧";
             }
-            else if (product.category === "Electronics") {
+
+            else if (
+                product.category &&
+                product.category.toLowerCase() === "electronics"
+            ) {
                 icon = "💻";
             }
+
+            else if (
+                product.category &&
+                product.category.toLowerCase() === "fashion"
+            ) {
+                icon = "👕";
+            }
+
+            else if (
+                product.category &&
+                product.category.toLowerCase() === "beauty"
+            ) {
+                icon = "💄";
+            }
+
+            else if (
+                product.category &&
+                product.category.toLowerCase() === "home"
+            ) {
+                icon = "🏠";
+            }
+
+            else if (
+                product.category &&
+                product.category.toLowerCase() === "appliances"
+            ) {
+                icon = "🔌";
+            }
+
+            else if (
+                product.category &&
+                product.category.toLowerCase() === "toys"
+            ) {
+                icon = "🧸";
+            }
+
+            else if (
+                product.category &&
+                product.category.toLowerCase() === "food"
+            ) {
+                icon = "🍔";
+            }
+
+            else if (
+                product.category &&
+                product.category.toLowerCase() === "books"
+            ) {
+                icon = "📚";
+            }
+
+            else if (
+                product.category &&
+                product.category.toLowerCase() === "sports"
+            ) {
+                icon = "⚽";
+            }
+
 
             imageHTML = `
                 <div class="product-icon">
@@ -58,30 +139,45 @@ function displayProducts() {
             `;
         }
 
+
         productList.innerHTML += `
 
             <div class="product">
 
                 ${imageHTML}
 
-                <h3>${product.name}</h3>
+                <h3>
+                    ${product.name}
+                </h3>
 
-                <p>Price: ₹${product.price}</p>
+                <p>
+                    Price: ₹${product.price}
+                </p>
 
-                <p>Stock: ${product.stock}</p>
+                <p>
+                    Stock: ${product.stock}
+                </p>
 
-                <p>Category: ${product.category}</p>
+                <p>
+                    Category: ${product.category}
+                </p>
+
 
                 <button
                     class="edit-button"
                     onclick="editProduct(${index})">
+
                     Edit
+
                 </button>
+
 
                 <button
                     class="delete-button"
                     onclick="deleteProduct(${index})">
+
                     Delete
+
                 </button>
 
             </div>
@@ -91,6 +187,7 @@ function displayProducts() {
 }
 
 
+
 // ==============================
 // ADD PRODUCT
 // ==============================
@@ -98,24 +195,41 @@ function displayProducts() {
 async function addProduct() {
 
     const name =
-        document.getElementById("productName").value.trim();
+        document
+            .getElementById("productName")
+            .value
+            .trim();
+
 
     const price =
-        document.getElementById("productPrice").value;
+        document
+            .getElementById("productPrice")
+            .value;
+
 
     const stock =
-        document.getElementById("productStock").value;
+        document
+            .getElementById("productStock")
+            .value;
+
 
     const category =
-        document.getElementById("productCategory").value;
+        document
+            .getElementById("productCategory")
+            .value;
+
 
     const imageInput =
         document.getElementById("productImage");
 
+
     const imageFile =
-        imageInput ? imageInput.files[0] : null;
+        imageInput
+            ? imageInput.files[0]
+            : null;
 
 
+    // VALIDATION
     if (
         name === "" ||
         price === "" ||
@@ -137,12 +251,13 @@ async function addProduct() {
         let imageData = "";
 
 
-        // Image is optional
-
+        // IMAGE IS OPTIONAL
         if (imageFile) {
 
             imageData =
-                await convertImageToBase64(imageFile);
+                await convertImageToBase64(
+                    imageFile
+                );
         }
 
 
@@ -150,11 +265,36 @@ async function addProduct() {
             new URLSearchParams();
 
 
-        data.append("name", name);
-        data.append("price", price);
-        data.append("stock", stock);
-        data.append("category", category);
-        data.append("image", imageData);
+        data.append(
+            "name",
+            name
+        );
+
+
+        data.append(
+            "price",
+            price
+        );
+
+
+        data.append(
+            "stock",
+            stock
+        );
+
+
+        // IMPORTANT
+        // CATEGORY IS SENT TO JAVA BACKEND
+        data.append(
+            "category",
+            category
+        );
+
+
+        data.append(
+            "image",
+            imageData
+        );
 
 
         const response =
@@ -168,7 +308,8 @@ async function addProduct() {
                             "application/x-www-form-urlencoded"
                     },
 
-                    body: data.toString()
+                    body:
+                        data.toString()
                 }
             );
 
@@ -176,8 +317,6 @@ async function addProduct() {
         const result =
             await response.text();
 
-
-        // DEBUG
 
         console.log(
             "Add Product Response:",
@@ -194,24 +333,25 @@ async function addProduct() {
             );
 
 
-            document.getElementById(
-                "productName"
-            ).value = "";
+            // CLEAR FORM
+            document
+                .getElementById("productName")
+                .value = "";
 
 
-            document.getElementById(
-                "productPrice"
-            ).value = "";
+            document
+                .getElementById("productPrice")
+                .value = "";
 
 
-            document.getElementById(
-                "productStock"
-            ).value = "";
+            document
+                .getElementById("productStock")
+                .value = "";
 
 
-            document.getElementById(
-                "productCategory"
-            ).value = "";
+            document
+                .getElementById("productCategory")
+                .value = "";
 
 
             if (imageInput) {
@@ -220,9 +360,11 @@ async function addProduct() {
             }
 
 
+            // REFRESH PRODUCTS
             await loadProducts();
 
         }
+
         else {
 
             console.log(
@@ -232,13 +374,14 @@ async function addProduct() {
 
 
             showMessage(
-                "Product addition failed: " + result,
+                "Product addition failed: " +
+                result,
                 "error"
             );
         }
 
-
     }
+
     catch (error) {
 
         console.log(
@@ -253,6 +396,7 @@ async function addProduct() {
         );
     }
 }
+
 
 
 // ==============================
@@ -288,6 +432,7 @@ function convertImageToBase64(file) {
         }
     );
 }
+
 
 
 // ==============================
@@ -376,12 +521,14 @@ async function editProduct(index) {
     );
 
 
+    // KEEP EXISTING CATEGORY
     data.append(
         "category",
         product.category
     );
 
 
+    // KEEP EXISTING IMAGE
     data.append(
         "image",
         product.image || ""
@@ -401,7 +548,8 @@ async function editProduct(index) {
                             "application/x-www-form-urlencoded"
                     },
 
-                    body: data.toString()
+                    body:
+                        data.toString()
                 }
             );
 
@@ -428,16 +576,18 @@ async function editProduct(index) {
             await loadProducts();
 
         }
+
         else {
 
             showMessage(
-                "Product update failed: " + result,
+                "Product update failed: " +
+                result,
                 "error"
             );
         }
 
-
     }
+
     catch (error) {
 
         console.log(
@@ -454,6 +604,7 @@ async function editProduct(index) {
 }
 
 
+
 // ==============================
 // DELETE PRODUCT
 // ==============================
@@ -466,7 +617,9 @@ async function deleteProduct(index) {
 
     const confirmDelete =
         confirm(
-            "Delete " + product.name + "?"
+            "Delete " +
+            product.name +
+            "?"
         );
 
 
@@ -499,7 +652,8 @@ async function deleteProduct(index) {
                             "application/x-www-form-urlencoded"
                     },
 
-                    body: data.toString()
+                    body:
+                        data.toString()
                 }
             );
 
@@ -526,16 +680,18 @@ async function deleteProduct(index) {
             await loadProducts();
 
         }
+
         else {
 
             showMessage(
-                "Product deletion failed: " + result,
+                "Product deletion failed: " +
+                result,
                 "error"
             );
         }
 
-
     }
+
     catch (error) {
 
         console.log(
@@ -550,6 +706,7 @@ async function deleteProduct(index) {
         );
     }
 }
+
 
 
 // ==============================
@@ -574,6 +731,7 @@ function showMessage(text, type) {
 }
 
 
+
 // ==============================
 // BACK TO LOGIN
 // ==============================
@@ -582,6 +740,7 @@ function goBack() {
 
     window.location.href = "/";
 }
+
 
 
 // ==============================
@@ -628,15 +787,20 @@ async function loadProducts() {
 
                     return {
 
-                        id: product.id,
+                        id:
+                            product.id,
 
-                        name: product.name,
+                        name:
+                            product.name,
 
-                        price: product.price,
+                        price:
+                            product.price,
 
-                        stock: product.stock,
+                        stock:
+                            product.stock,
 
-                        category: product.category,
+                        category:
+                            product.category,
 
                         image:
                             product.image || ""
@@ -647,8 +811,8 @@ async function loadProducts() {
 
         displayProducts();
 
-
     }
+
     catch (error) {
 
         console.log(
@@ -662,6 +826,7 @@ async function loadProducts() {
         displayProducts();
     }
 }
+
 
 
 // ==============================
@@ -728,30 +893,37 @@ async function loadOrders() {
                     <div class="product">
 
                         <h3>
-                            Order ID: ${order.id}
+                            Order ID:
+                            ${order.id}
                         </h3>
+
 
                         <p>
                             Product:
                             ${order.product_name}
                         </p>
 
+
                         <p>
                             Price:
                             ₹${order.price}
                         </p>
+
 
                         <p>
                             Quantity:
                             ${order.quantity}
                         </p>
 
+
                         <p>
                             Total:
                             ₹${order.total}
                         </p>
 
+
                         <p>
+
                             Status:
 
                             <select
@@ -766,9 +938,10 @@ async function loadOrders() {
                                 <option
                                     value="Placed"
                                     ${
-                                        order.status === "Placed"
-                                        ? "selected"
-                                        : ""
+                                        order.status ===
+                                        "Placed"
+                                            ? "selected"
+                                            : ""
                                     }
                                 >
                                     Placed
@@ -778,9 +951,10 @@ async function loadOrders() {
                                 <option
                                     value="Processing"
                                     ${
-                                        order.status === "Processing"
-                                        ? "selected"
-                                        : ""
+                                        order.status ===
+                                        "Processing"
+                                            ? "selected"
+                                            : ""
                                     }
                                 >
                                     Processing
@@ -790,9 +964,10 @@ async function loadOrders() {
                                 <option
                                     value="Shipped"
                                     ${
-                                        order.status === "Shipped"
-                                        ? "selected"
-                                        : ""
+                                        order.status ===
+                                        "Shipped"
+                                            ? "selected"
+                                            : ""
                                     }
                                 >
                                     Shipped
@@ -802,9 +977,10 @@ async function loadOrders() {
                                 <option
                                     value="Delivered"
                                     ${
-                                        order.status === "Delivered"
-                                        ? "selected"
-                                        : ""
+                                        order.status ===
+                                        "Delivered"
+                                            ? "selected"
+                                            : ""
                                     }
                                 >
                                     Delivered
@@ -814,9 +990,10 @@ async function loadOrders() {
                                 <option
                                     value="Cancelled"
                                     ${
-                                        order.status === "Cancelled"
-                                        ? "selected"
-                                        : ""
+                                        order.status ===
+                                        "Cancelled"
+                                            ? "selected"
+                                            : ""
                                     }
                                 >
                                     Cancelled
@@ -832,8 +1009,8 @@ async function loadOrders() {
             }
         );
 
-
     }
+
     catch (error) {
 
         console.log(
@@ -842,12 +1019,13 @@ async function loadOrders() {
         );
 
 
-        document.getElementById(
-            "orderList"
-        ).innerHTML =
-            "<p>Unable to load orders.</p>";
+        document
+            .getElementById("orderList")
+            .innerHTML =
+                "<p>Unable to load orders.</p>";
     }
 }
+
 
 
 // ==============================
@@ -888,7 +1066,8 @@ async function updateOrderStatus(
                             "application/x-www-form-urlencoded"
                     },
 
-                    body: data.toString()
+                    body:
+                        data.toString()
                 }
             );
 
@@ -915,16 +1094,18 @@ async function updateOrderStatus(
             await loadOrders();
 
         }
+
         else {
 
             showMessage(
-                "Order status update failed: " + result,
+                "Order status update failed: " +
+                result,
                 "error"
             );
         }
 
-
     }
+
     catch (error) {
 
         console.log(
@@ -939,6 +1120,7 @@ async function updateOrderStatus(
         );
     }
 }
+
 
 
 // ==============================

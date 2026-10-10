@@ -1,39 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>SathanaMart - Cart</title>
-
-    <link rel="stylesheet" href="cart.css">
+    <title>SathanaMart - Cart & Checkout</title>
+    <link rel="stylesheet" href="/cart.css">
 </head>
-
 <body>
 
     <h1>🛒 SathanaMart</h1>
-
     <h2>Shopping Cart</h2>
 
     <div id="cartList">
         <p>Your cart is empty.</p>
     </div>
 
-    <h3 id="cartTotal">
-        Total: ₹0
-    </h3>
+    <h3 id="cartTotal">Total: ₹0</h3>
 
-    <button onclick="goBack()">
-        Continue Shopping
-    </button>
+    <hr>
 
-    <button onclick="placeOrder()">
-         Place Order
-    </button>
+    <h2>📦 Delivery Details</h2>
 
-    <script src="cart.js"></script>
+    <div id="savedAddressMessage"></div>
+
+    <form id="checkoutForm">
+        <label for="customerName">Full Name</label>
+        <input type="text" id="customerName" required
+               placeholder="Enter your full name">
+
+        <label for="customerPhone">Phone Number</label>
+        <input type="tel" id="customerPhone" required
+               pattern="[0-9]{10}" maxlength="10"
+               placeholder="10-digit mobile number">
+
+        <label for="customerGender">Gender (optional)</label>
+        <select id="customerGender">
+            <option value="">Prefer not to say</option>
+            <option value="Female">Female</option>
+            <option value="Male">Male</option>
+            <option value="Other">Other</option>
+        </select>
+
+        <label for="customerAddress">House No. and Street Address</label>
+        <textarea id="customerAddress" required
+                  placeholder="Enter house number, street and area"></textarea>
+
+        <label for="customerCity">City / Town</label>
+        <input type="text" id="customerCity" required
+               placeholder="Enter your city">
+
+        <label for="customerPincode">Pincode</label>
+        <input type="text" id="customerPincode" required
+               pattern="[0-9]{6}" maxlength="6"
+               placeholder="6-digit pincode">
+
+        <button type="button" id="editAddressBtn"
+                onclick="enableAddressEdit()" hidden>
+            ✏️ Edit Address
+        </button>
+
+        <button type="button" id="cancelAddressEditBtn"
+                onclick="cancelAddressEdit()" hidden>
+            Cancel Edit
+        </button>
+
+        <button type="button" id="saveAddressBtn"
+                onclick="saveDeliveryAddress()">
+            💾 Save Delivery Details
+        </button>
+
+        <hr>
+
+        <h2>💵 Payment Method</h2>
+
+        <label>
+            <input type="radio" name="paymentMethod"
+                   value="Cash on Delivery" checked>
+            Cash on Delivery (COD)
+        </label>
+
+        <p>Pay when your order arrives.</p>
+
+        <button type="button" onclick="goBack()">
+            ← Continue Shopping
+        </button>
+
+        <button type="button"
+                onclick="window.location.href='/orders.html'">
+            📦 My Orders
+        </button>
+
+        <button type="submit" id="placeOrderBtn">
+            Place Order
+        </button>
+    </form>
+
+    <script src="/cart.js"></script>
 
 </body>
-
 </html>

@@ -1,1844 +1,922 @@
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.net.InetSocketAddress;
+import java.net.URLDecoder;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.net.InetSocketAddress;
+
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 public class SathanaMartBackend {
-        private static final String DB_HOST =
-        System.getenv().getOrDefault("SATHANAMART_DB_HOST", "localhost");
 
-private static final String DB_PORT =
-        System.getenv().getOrDefault("SATHANAMART_DB_PORT", "3306");
+    // =========================================
+    // DATABASE CONFIGURATION
+    // =========================================
 
-private static final String DB_NAME =
-        System.getenv().getOrDefault("SATHANAMART_DB_NAME", "SathanaMart");
+    private static final String DB_HOST =
+            System.getenv().getOrDefault(
+                    "SATHANAMART_DB_HOST", "localhost");
 
-private static final String USERNAME =
-        System.getenv().getOrDefault("SATHANAMART_DB_USER", "root");
+    private static final String DB_PORT =
+            System.getenv().getOrDefault(
+                    "SATHANAMART_DB_PORT", "3306");
 
-private static final String PASSWORD =
-        System.getenv("SATHANAMART_DB_PASSWORD");
+    private static final String DB_NAME =
+            System.getenv().getOrDefault(
+                    "SATHANAMART_DB_NAME", "SathanaMart");
 
+    private static final String USERNAME =
+            System.getenv().getOrDefault(
+                    "SATHANAMART_DB_USER", "root");
 
-private static final String URL =
-        "jdbc:mysql://" + DB_HOST + ":" + DB_PORT + "/" + DB_NAME
-        + "?sslMode=REQUIRED&allowPublicKeyRetrieval=true&serverTimezone=UTC";        
+    private static final String PASSWORD = "sathana2007@";
 
+    private static final String URL =
+            "jdbc:mysql://" + DB_HOST + ":" + DB_PORT + "/"
+                    + DB_NAME
+                    + "?sslMode=DISABLED&serverTimezone=UTC";
 
+    // =========================================
+    // MAIN
+    // =========================================
 
     public static void main(String[] args) {
 
         try {
-
             Class.forName("com.mysql.cj.jdbc.Driver");
 
+            // Check database connection before starting.
+            try (Connection con = getConnection()) {
+                System.out.println("MySQL connection successful!");
+            }
 
-                    int port = Integer.parseInt(
-    System.getenv().getOrDefault("PORT", "8080")
-);
+            int port = Integer.parseInt(
+                    System.getenv().getOrDefault("PORT", "8080"));
 
-HttpServer server = HttpServer.create(
-    new InetSocketAddress("0.0.0.0", port),
-    0
-);
+            HttpServer server = HttpServer.create(
+                    new InetSocketAddress("0.0.0.0", port), 0);
 
+            // =====================================
+            // FRONTEND FILE ROUTES
+            // =====================================
 
-            // =========================================
-            // HOME PAGE
-            // =========================================
+            file(server, "/", "index.html", "text/html");
+            file(server, "/index.html", "index.html", "text/html");
+            file(server, "/script.js", "script.js",
+                    "application/javascript");
+            file(server, "/style.css", "style.css", "text/css");
 
-            server.createContext("/", exchange -> {
+            file(server, "/buyer.html", "buyer.html", "text/html");
+            file(server, "/buyer.js", "buyer.js",
+                    "application/javascript");
+            file(server, "/buyer.css", "buyer.css", "text/css");
 
-                serveFile(
-                        exchange,
-                        "index.html",
-                        "text/html"
-                );
+            file(server, "/seller.html", "seller.html", "text/html");
+            file(server, "/seller.js", "seller.js",
+                    "application/javascript");
+            file(server, "/seller.css", "seller.css", "text/css");
 
-            });
+            file(server, "/admin.html", "admin.html", "text/html");
+            file(server, "/admin.js", "admin.js",
+                    "application/javascript");
+            file(server, "/admin.css", "admin.css", "text/css");
 
+            file(server, "/cart.html", "cart.html", "text/html");
+            file(server, "/cart.js", "cart.js",
+                    "application/javascript");
+            file(server, "/cart.css", "cart.css", "text/css");
 
-            // =========================================
+            file(server, "/wishlist.html", "wishlist.html", "text/html");
+            file(server, "/wishlist.js", "wishlist.js",
+                    "application/javascript");
+            file(server, "/wishlist.css", "wishlist.css", "text/css");
+
+            file(server, "/orders.html", "orders.html", "text/html");
+            file(server, "/orders.js", "orders.js",
+                    "application/javascript");
+            file(server, "/orders.css", "orders.css", "text/css");
+
+            // =====================================
             // REGISTER
-            // =========================================
+            // =====================================
 
             server.createContext("/register", exchange -> {
+                if (!method(exchange, "POST")) return;
 
-                if (!"POST".equalsIgnoreCase(
-                        exchange.getRequestMethod())) {
+                String data = body(exchange);
+                String name = value(data, "name");
+                String email = value(data, "email");
+                String password = value(data, "password");
+                String role = value(data, "role");
 
-                    exchange.sendResponseHeaders(405, -1);
-                    exchange.close();
-                    return;
+                role = role.trim().toLowerCase();
+
+                if (!role.equals("buyer") && !role.equals("seller")) {
+                   send(exchange, 403, "Only Buyer or Seller accounts are allowed.",
+                     "text/plain; charset=UTF-8");
+                      return;
                 }
-
-
-                String requestData =
-                        new String(
-                                exchange.getRequestBody()
-                                        .readAllBytes()
-                        );
-
-
-                String name =
-                        getValue(requestData, "name");
-
-                String email =
-                        getValue(requestData, "email");
-
-                String password =
-                        getValue(requestData, "password");
-
-                String role =
-                        getValue(requestData, "role");
-
 
                 String sql =
-                        "INSERT INTO users " +
-                        "(name, email, password, role) " +
-                        "VALUES (?, ?, ?, ?)";
+                        "INSERT INTO users (name, email, password, role) "
+                        + "VALUES (?, ?, ?, ?)";
 
+                try (Connection con = getConnection();
+                     PreparedStatement ps = con.prepareStatement(sql)) {
 
-                String response;
+                    ps.setString(1, name);
+                    ps.setString(2, email);
+                    ps.setString(3, password);
+                    ps.setString(4, role);
 
-
-                try {
-
-                    Connection connection =
-                            DriverManager.getConnection(
-                                    URL,
-                                    USERNAME,
-                                    PASSWORD
-                            );
-
-
-                    PreparedStatement statement =
-                            connection.prepareStatement(sql);
-
-
-                    statement.setString(1, name);
-                    statement.setString(2, email);
-                    statement.setString(3, password);
-                    statement.setString(4, role);
-
-
-                    int result =
-                            statement.executeUpdate();
-
-
-                    if (result > 0) {
-
-                        response =
-                                "Account Created Successfully!";
-
+                    if (ps.executeUpdate() > 0) {
+                        text(exchange, "Account Created Successfully!");
                     } else {
-
-                        response =
-                                "Account Creation Failed!";
+                        text(exchange, "Account Creation Failed!");
                     }
 
-
-                    statement.close();
-                    connection.close();
-
                 } catch (Exception e) {
-
-                    response =
-                            "Account Creation Failed!";
+                    e.printStackTrace();
+                    text(exchange, "Account Creation Failed!");
                 }
-
-
-                sendText(
-                        exchange,
-                        response
-                );
-
             });
 
-
-            // =========================================
+            // =====================================
             // LOGIN
-            // =========================================
-
+            // =====================================
             server.createContext("/login", exchange -> {
-
-                if (!"POST".equalsIgnoreCase(
-                        exchange.getRequestMethod())) {
-
-                    exchange.sendResponseHeaders(405, -1);
-                    exchange.close();
-                    return;
-                }
-
-
-                String requestData =
-                        new String(
-                                exchange.getRequestBody()
-                                        .readAllBytes()
-                        );
-
-
-                String email =
-                        getValue(requestData, "email");
-
-                String password =
-                        getValue(requestData, "password");
-
-                String role =
-                        getValue(requestData, "role");
-
-
-                String sql =
-                        "SELECT * FROM users " +
-                        "WHERE email = ? " +
-                        "AND password = ? " +
-                        "AND role = ?";
-
-
-                String response;
-
-
-                try {
-
-                    Connection connection =
-                            DriverManager.getConnection(
-                                    URL,
-                                    USERNAME,
-                                    PASSWORD
-                            );
-
-
-                    PreparedStatement statement =
-                            connection.prepareStatement(sql);
-
-
-                    statement.setString(1, email);
-                    statement.setString(2, password);
-                    statement.setString(3, role);
-
-
-                    ResultSet resultSet =
-                            statement.executeQuery();
-
-
-                    if (resultSet.next()) {
-
-                        response =
-                                "Login Successfully! " +
-                                "Welcome to SathanaMart";
-
-                    } else {
-
-                        response =
-                                "Invalid Email, Password or Role!";
-                    }
-
-
-                    resultSet.close();
-                    statement.close();
-                    connection.close();
-
-                } catch (Exception e) {
-
-                    response =
-                            "Login Failed!";
-                }
-
-
-                sendText(
-                        exchange,
-                        response
-                );
-
-            });
-
-
-            // =========================================
-            // FRONTEND FILES
-            // =========================================
-
-            createFileRoute(
-                    server,
-                    "/script.js",
-                    "script.js",
-                    "application/javascript"
-            );
-
-
-            createFileRoute(
-                    server,
-                    "/style.css",
-                    "style.css",
-                    "text/css"
-            );
-
-
-            createFileRoute(
-                    server,
-                    "/seller.html",
-                    "seller.html",
-                    "text/html"
-            );
-
-
-            createFileRoute(
-                    server,
-                    "/seller.js",
-                    "seller.js",
-                    "application/javascript"
-            );
-
-
-            createFileRoute(
-                    server,
-                    "/seller.css",
-                    "seller.css",
-                    "text/css"
-            );
-
-
-            createFileRoute(
-                    server,
-                    "/buyer.html",
-                    "buyer.html",
-                    "text/html"
-            );
-
-
-            createFileRoute(
-                    server,
-                    "/buyer.js",
-                    "buyer.js",
-                    "application/javascript"
-            );
-
-
-            createFileRoute(
-                    server,
-                    "/buyer.css",
-                    "buyer.css",
-                    "text/css"
-            );
-
-
-            createFileRoute(
-                    server,
-                    "/admin.html",
-                    "admin.html",
-                    "text/html"
-            );
-
-
-            createFileRoute(
-                    server,
-                    "/admin.js",
-                    "admin.js",
-                    "application/javascript"
-            );
-
-
-            createFileRoute(
-                    server,
-                    "/admin.css",
-                    "admin.css",
-                    "text/css"
-            );
-
-
-            // =========================================
-            // CART PAGE
-            // =========================================
-
-            createFileRoute(
-                    server,
-                    "/cart.html",
-                    "cart.html",
-                    "text/html"
-            );
-
-
-            createFileRoute(
-                    server,
-                    "/cart.js",
-                    "cart.js",
-                    "application/javascript"
-            );
-
-
-            createFileRoute(
-                    server,
-                    "/cart.css",
-                    "cart.css",
-                    "text/css"
-            );
-
-
-            // =========================================
-            // WISHLIST PAGE
-            // =========================================
-
-            createFileRoute(
-                    server,
-                    "/wishlist.html",
-                    "wishlist.html",
-                    "text/html"
-            );
-
-
-            createFileRoute(
-                    server,
-                    "/wishlist.js",
-                    "wishlist.js",
-                    "application/javascript"
-            );
-
-
-            createFileRoute(
-                    server,
-                    "/wishlist.css",
-                    "wishlist.css",
-                    "text/css"
-            );
-
-
-            // =========================================
-            // PRODUCTS
-            // =========================================
-
-            server.createContext(
-                    "/products",
-                    exchange -> {
-
-                String method =
-                        exchange.getRequestMethod();
-
-
-                // -------------------------------------
-                // ADD PRODUCT
-                // -------------------------------------
-
-                if ("POST".equalsIgnoreCase(method)) {
-
-                    String requestData =
-                            new String(
-                                    exchange.getRequestBody()
-                                            .readAllBytes()
-                            );
-
-
-                    String name =
-                            getValue(
-                                    requestData,
-                                    "name"
-                            );
-
-                    String price =
-                            getValue(
-                                    requestData,
-                                    "price"
-                            );
-
-                    String stock =
-                            getValue(
-                                    requestData,
-                                    "stock"
-                            );
-
-                    String category =
-                            getValue(
-                                    requestData,
-                                    "category"
-                            );
-
-                    String image =
-                            getValue(
-                                    requestData,
-                                    "image"
-                            );
-
-
-                    String sql =
-                            "INSERT INTO products " +
-                            "(name, price, stock, category, image) " +
-                            "VALUES (?, ?, ?, ?, ?)";
-
-
-                    String response;
-
-
-                    try {
-
-                        Connection connection =
-                                DriverManager.getConnection(
-                                        URL,
-                                        USERNAME,
-                                        PASSWORD
-                                );
-
-
-                        PreparedStatement statement =
-                                connection.prepareStatement(sql);
-
-
-                        statement.setString(1, name);
-
-                        statement.setDouble(
-                                2,
-                                Double.parseDouble(price)
-                        );
-
-                        statement.setInt(
-                                3,
-                                Integer.parseInt(stock)
-                        );
-
-                        statement.setString(
-                                4,
-                                category
-                        );
-
-                        statement.setString(
-                                5,
-                                image
-                        );
-
-
-                        int result =
-                                statement.executeUpdate();
-
-
-                        if (result > 0) {
-
-                            response =
-                                    "Product Added Successfully!";
-
-                        } else {
-
-                            response =
-                                    "Product Addition Failed!";
-                        }
-
-
-                        statement.close();
-                        connection.close();
-
-                    } catch (Exception e) {
-
-                        response =
-                                "Product Addition Failed!";
-                    }
-
-
-                    sendText(
-                            exchange,
-                            response
-                    );
-
-
-                // -------------------------------------
-                // GET PRODUCTS
-                // -------------------------------------
-
-                } else if (
-                        "GET".equalsIgnoreCase(method)
-                ) {
-
-                    StringBuilder json =
-                            new StringBuilder();
-
-
-                    json.append("[");
-
-
-                    try {
-
-                        Connection connection =
-                                DriverManager.getConnection(
-                                        URL,
-                                        USERNAME,
-                                        PASSWORD
-                                );
-
-
-                        String sql =
-                                "SELECT id, name, price, " +
-                                "stock, category, image " +
-                                "FROM products";
-
-
-                        PreparedStatement statement =
-                                connection.prepareStatement(sql);
-
-
-                        ResultSet resultSet =
-                                statement.executeQuery();
-
-
-                        boolean first = true;
-
-
-                        while (resultSet.next()) {
-
-                            if (!first) {
-
-                                json.append(",");
-
-                            }
-
-
-                            json.append("{");
-
-
-                            json.append("\"id\":")
-                                    .append(
-                                            resultSet.getInt("id")
-                                    )
-                                    .append(",");
-
-
-                            json.append("\"name\":\"")
-                                    .append(
-                                            escapeJson(
-                                                resultSet.getString(
-                                                    "name"
-                                                )
-                                            )
-                                    )
-                                    .append("\",");
-
-
-                            json.append("\"price\":")
-                                    .append(
-                                            resultSet.getDouble(
-                                                    "price"
-                                            )
-                                    )
-                                    .append(",");
-
-
-                            json.append("\"stock\":")
-                                    .append(
-                                            resultSet.getInt(
-                                                    "stock"
-                                            )
-                                    )
-                                    .append(",");
-
-
-                            json.append("\"category\":\"")
-                                    .append(
-                                            escapeJson(
-                                                resultSet.getString(
-                                                    "category"
-                                                )
-                                            )
-                                    )
-                                    .append("\",");
-
-
-                            String image =
-                                    resultSet.getString(
-                                            "image"
-                                    );
-
-
-                            json.append("\"image\":\"")
-                                    .append(
-                                            escapeJson(
-                                                image == null
-                                                        ? ""
-                                                        : image
-                                            )
-                                    )
-                                    .append("\"");
-
-
-                            json.append("}");
-
-
-                            first = false;
-                        }
-
-
-                        json.append("]");
-
-
-                        resultSet.close();
-                        statement.close();
-                        connection.close();
-
-
-                        sendJson(
-                                exchange,
-                                200,
-                                json.toString()
-                        );
-
-
-                    } catch (Exception e) {
-
-                        sendJson(
-                                exchange,
-                                500,
-                                "[]"
-                        );
-                    }
-
-
-                // -------------------------------------
-                // UPDATE PRODUCT
-                // -------------------------------------
-
-                } else if (
-                        "PUT".equalsIgnoreCase(method)
-                ) {
-
-                    String requestData =
-                            new String(
-                                    exchange.getRequestBody()
-                                            .readAllBytes()
-                            );
-
-
-                    String id =
-                            getValue(
-                                    requestData,
-                                    "id"
-                            );
-
-                    String name =
-                            getValue(
-                                    requestData,
-                                    "name"
-                            );
-
-                    String price =
-                            getValue(
-                                    requestData,
-                                    "price"
-                            );
-
-                    String stock =
-                            getValue(
-                                    requestData,
-                                    "stock"
-                            );
-
-                    String category =
-                            getValue(
-                                    requestData,
-                                    "category"
-                            );
-
-                    String image =
-                            getValue(
-                                    requestData,
-                                    "image"
-                            );
-
-
-                    String sql =
-                            "UPDATE products SET " +
-                            "name = ?, " +
-                            "price = ?, " +
-                            "stock = ?, " +
-                            "category = ?, " +
-                            "image = ? " +
-                            "WHERE id = ?";
-
-
-                    String response;
-
-
-                    try {
-
-                        Connection connection =
-                                DriverManager.getConnection(
-                                        URL,
-                                        USERNAME,
-                                        PASSWORD
-                                );
-
-
-                        PreparedStatement statement =
-                                connection.prepareStatement(sql);
-
-
-                        statement.setString(
-                                1,
-                                name
-                        );
-
-
-                        statement.setDouble(
-                                2,
-                                Double.parseDouble(price)
-                        );
-
-
-                        statement.setInt(
-                                3,
-                                Integer.parseInt(stock)
-                        );
-
-
-                        statement.setString(
-                                4,
-                                category
-                        );
-
-
-                        statement.setString(
-                                5,
-                                image
-                        );
-
-
-                        statement.setInt(
-                                6,
-                                Integer.parseInt(id)
-                        );
-
-
-                        int result =
-                                statement.executeUpdate();
-
-
-                        if (result > 0) {
-
-                            response =
-                                    "Product Updated Successfully!";
-
-                        } else {
-
-                            response =
-                                    "Product Update Failed!";
-                        }
-
-
-                        statement.close();
-                        connection.close();
-
-                    } catch (Exception e) {
-
-                        response =
-                                "Product Update Failed!";
-                    }
-
-
-                    sendText(
-                            exchange,
-                            response
-                    );
-
-
-                // -------------------------------------
-                // DELETE PRODUCT
-                // -------------------------------------
-
-                } else if (
-                        "DELETE".equalsIgnoreCase(method)
-                ) {
-
-                    String requestData =
-                            new String(
-                                    exchange.getRequestBody()
-                                            .readAllBytes()
-                            );
-
-
-                    String id =
-                            getValue(
-                                    requestData,
-                                    "id"
-                            );
-
-
-                    String response;
-
-
-                    try {
-
-                        Connection connection =
-                                DriverManager.getConnection(
-                                        URL,
-                                        USERNAME,
-                                        PASSWORD
-                                );
-
-
-                        String sql =
-                                "DELETE FROM products " +
-                                "WHERE id = ?";
-
-
-                        PreparedStatement statement =
-                                connection.prepareStatement(sql);
-
-
-                        statement.setInt(
-                                1,
-                                Integer.parseInt(id)
-                        );
-
-
-                        int result =
-                                statement.executeUpdate();
-
-
-                        if (result > 0) {
-
-                            response =
-                                    "Product Deleted Successfully!";
-
-                        } else {
-
-                            response =
-                                    "Product Delete Failed!";
-                        }
-
-
-                        statement.close();
-                        connection.close();
-
-                    } catch (Exception e) {
-
-                        response =
-                                "Product Delete Failed!";
-                    }
-
-
-                    sendText(
-                            exchange,
-                            response
-                    );
-
-
-                } else {
-
-                    exchange.sendResponseHeaders(
-                            405,
-                            -1
-                    );
-
-                    exchange.close();
-                }
-
-            });
-
-
-            // =========================================
-            // ORDERS
-            // =========================================
-
-            server.createContext(
-                    "/orders",
-                    exchange -> {
-
-                String method =
-                        exchange.getRequestMethod();
-
-
-                // -------------------------------------
-                // CREATE ORDER
-                // -------------------------------------
-
-                if ("POST".equalsIgnoreCase(method)) {
-
-                    String requestData =
-                            new String(
-                                    exchange.getRequestBody()
-                                            .readAllBytes()
-                            );
-
-
-                    String productName =
-                            getValue(
-                                    requestData,
-                                    "product_name"
-                            );
-
-                    String price =
-                            getValue(
-                                    requestData,
-                                    "price"
-                            );
-
-                    String quantity =
-                            getValue(
-                                    requestData,
-                                    "quantity"
-                            );
-
-                    String total =
-                            getValue(
-                                    requestData,
-                                    "total"
-                            );
-
-
-                    String sql =
-                            "INSERT INTO orders " +
-                            "(product_name, price, quantity, total) " +
-                            "VALUES (?, ?, ?, ?)";
-
-
-                    String response;
-
-
-                    try {
-
-                        Connection connection =
-                                DriverManager.getConnection(
-                                        URL,
-                                        USERNAME,
-                                        PASSWORD
-                                );
-
-
-                        PreparedStatement statement =
-                                connection.prepareStatement(sql);
-
-
-                        statement.setString(
-                                1,
-                                productName
-                        );
-
-
-                        statement.setDouble(
-                                2,
-                                Double.parseDouble(price)
-                        );
-
-
-                        statement.setInt(
-                                3,
-                                Integer.parseInt(quantity)
-                        );
-
-
-                        statement.setDouble(
-                                4,
-                                Double.parseDouble(total)
-                        );
-
-
-                        int result =
-                                statement.executeUpdate();
-
-
-                        if (result > 0) {
-
-                            response =
-                                    "Order Placed Successfully!";
-
-                        } else {
-
-                            response =
-                                    "Order Placement Failed!";
-                        }
-
-
-                        statement.close();
-                        connection.close();
-
-                    } catch (Exception e) {
-
-                        response =
-                                "Order Placement Failed!";
-                    }
-
-
-                    sendText(
-                            exchange,
-                            response
-                    );
-
-
-                // -------------------------------------
-                // UPDATE ORDER STATUS
-                // -------------------------------------
-
-                } else if (
-                        "PUT".equalsIgnoreCase(method)
-                ) {
-
-                    String requestData =
-                            new String(
-                                    exchange.getRequestBody()
-                                            .readAllBytes()
-                            );
-
-
-                    String id =
-                            getValue(
-                                    requestData,
-                                    "id"
-                            );
-
-                    String status =
-                            getValue(
-                                    requestData,
-                                    "status"
-                            );
-
-
-                    String response;
-
-
-                    try {
-
-                        Connection connection =
-                                DriverManager.getConnection(
-                                        URL,
-                                        USERNAME,
-                                        PASSWORD
-                                );
-
-
-                        String sql =
-                                "UPDATE orders " +
-                                "SET status = ? " +
-                                "WHERE id = ?";
-
-
-                        PreparedStatement statement =
-                                connection.prepareStatement(sql);
-
-
-                        statement.setString(
-                                1,
-                                status
-                        );
-
-
-                        statement.setInt(
-                                2,
-                                Integer.parseInt(id)
-                        );
-
-
-                        int result =
-                                statement.executeUpdate();
-
-
-                        if (result > 0) {
-
-                            response =
-                                    "Order Status Updated Successfully!";
-
-                        } else {
-
-                            response =
-                                    "Order Status Update Failed!";
-                        }
-
-
-                        statement.close();
-                        connection.close();
-
-                    } catch (Exception e) {
-
-                        response =
-                                "Order Status Update Failed!";
-                    }
-
-
-                    sendText(
-                            exchange,
-                            response
-                    );
-
-
-                // -------------------------------------
-                // GET ORDERS
-                // -------------------------------------
-
-                } else if (
-                        "GET".equalsIgnoreCase(method)
-                ) {
-
-                    StringBuilder json =
-                            new StringBuilder();
-
-
-                    json.append("[");
-
-
-                    try {
-
-                        Connection connection =
-                                DriverManager.getConnection(
-                                        URL,
-                                        USERNAME,
-                                        PASSWORD
-                                );
-
-
-                        String sql =
-                                "SELECT id, product_name, " +
-                                "price, quantity, total, " +
-                                "status, order_date " +
-                                "FROM orders " +
-                                "ORDER BY id DESC";
-
-
-                        PreparedStatement statement =
-                                connection.prepareStatement(sql);
-
-
-                        ResultSet resultSet =
-                                statement.executeQuery();
-
-
-                        boolean first = true;
-
-
-                        while (resultSet.next()) {
-
-                            if (!first) {
-
-                                json.append(",");
-
-                            }
-
-
-                            json.append("{");
-
-
-                            json.append("\"id\":")
-                                    .append(
-                                            resultSet.getInt("id")
-                                    )
-                                    .append(",");
-
-
-                            json.append(
-                                    "\"product_name\":\""
-                            )
-                            .append(
-                                    escapeJson(
-                                        resultSet.getString(
-                                                "product_name"
-                                        )
-                                    )
-                            )
-                            .append("\",");
-
-
-                            json.append("\"price\":")
-                                    .append(
-                                            resultSet.getDouble(
-                                                    "price"
-                                            )
-                                    )
-                                    .append(",");
-
-
-                            json.append("\"quantity\":")
-                                    .append(
-                                            resultSet.getInt(
-                                                    "quantity"
-                                            )
-                                    )
-                                    .append(",");
-
-
-                            json.append("\"total\":")
-                                    .append(
-                                            resultSet.getDouble(
-                                                    "total"
-                                            )
-                                    )
-                                    .append(",");
-
-
-                            json.append("\"status\":\"")
-                                    .append(
-                                            escapeJson(
-                                                resultSet.getString(
-                                                        "status"
-                                                )
-                                            )
-                                    )
-                                    .append("\",");
-
-
-                            json.append("\"order_date\":\"")
-                                    .append(
-                                            escapeJson(
-                                                resultSet.getString(
-                                                        "order_date"
-                                                )
-                                            )
-                                    )
-                                    .append("\"");
-
-
-                            json.append("}");
-
-
-                            first = false;
-                        }
-
-
-                        json.append("]");
-
-
-                        resultSet.close();
-                        statement.close();
-                        connection.close();
-
-
-                        sendJson(
-                                exchange,
-                                200,
-                                json.toString()
-                        );
-
-
-                    } catch (Exception e) {
-
-                        sendJson(
-                                exchange,
-                                500,
-                                "[]"
-                        );
-                    }
-
-
-                } else {
-
-                    exchange.sendResponseHeaders(
-                            405,
-                            -1
-                    );
-
-                    exchange.close();
-                }
-
-            });
-
-
-            // =========================================
-            // USERS
-            // =========================================
-
-            server.createContext(
-                    "/users",
-                    exchange -> {
-
-                String method =
-                        exchange.getRequestMethod();
-
-
-                // GET USERS
+    if (!method(exchange, "POST")) return;
+
+    String data = body(exchange);
+    String email = value(data, "email").trim();
+    String password = value(data, "password");
+    String role = value(data, "role").trim().toLowerCase();
+
+    // Admin credentials are configured on the server.
+    String adminEmail = System.getenv().getOrDefault(
+            "SATHANAMART_ADMIN_EMAIL",
+            "sathanasenthilkumar@gmail.com");
+
+    String adminPassword =
+            System.getenv("SATHANAMART_ADMIN_PASSWORD");
+
+    if ("admin".equals(role)) {
+        if (email.equalsIgnoreCase(adminEmail)
+                && adminPassword != null
+                && !adminPassword.isBlank()
+                && password.equals(adminPassword)) {
+
+            text(exchange, "Login Successfully! Welcome to SathanaMart");
+        } else {
+            send(exchange, 401, "Invalid Email, Password or Role!",
+                    "text/plain; charset=UTF-8");
+        }
+        return;
+    }
+
+    // Public login is restricted to Buyer and Seller.
+    if (!role.equals("buyer") && !role.equals("seller")) {
+        send(exchange, 403, "Invalid account role.",
+                "text/plain; charset=UTF-8");
+        return;
+    }
+
+    String sql = "SELECT id FROM users "
+            + "WHERE email=? AND password=? AND LOWER(role)=?";
+
+    try (Connection con = getConnection();
+         PreparedStatement ps = con.prepareStatement(sql)) {
+
+        ps.setString(1, email);
+        ps.setString(2, password);
+        ps.setString(3, role);
+
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                text(exchange,
+                        "Login Successfully! Welcome to SathanaMart");
+            } else {
+                send(exchange, 401, "Invalid Email, Password or Role!",
+                        "text/plain; charset=UTF-8");
+            }
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+        send(exchange, 500, "Login Failed!",
+                "text/plain; charset=UTF-8");
+    }
+});
+
+            // =====================================
+            // PRODUCTS: GET, POST, PUT, DELETE
+            // =====================================
+
+            server.createContext("/products", exchange -> {
+                String method = exchange.getRequestMethod();
 
                 if ("GET".equalsIgnoreCase(method)) {
-
-                    StringBuilder json =
-                            new StringBuilder();
-
-
-                    json.append("[");
-
-
-                    try {
-
-                        Connection connection =
-                                DriverManager.getConnection(
-                                        URL,
-                                        USERNAME,
-                                        PASSWORD
-                                );
-
-
-                        String sql =
-                                "SELECT id, name, email, role " +
-                                "FROM users " +
-                                "ORDER BY id DESC";
-
-
-                        PreparedStatement statement =
-                                connection.prepareStatement(sql);
-
-
-                        ResultSet resultSet =
-                                statement.executeQuery();
-
-
-                        boolean first = true;
-
-
-                        while (resultSet.next()) {
-
-                            if (!first) {
-
-                                json.append(",");
-
-                            }
-
-
-                            json.append("{");
-
-
-                            json.append("\"id\":")
-                                    .append(
-                                            resultSet.getInt("id")
-                                    )
-                                    .append(",");
-
-
-                            json.append("\"name\":\"")
-                                    .append(
-                                            escapeJson(
-                                                resultSet.getString(
-                                                        "name"
-                                                )
-                                            )
-                                    )
-                                    .append("\",");
-
-
-                            json.append("\"email\":\"")
-                                    .append(
-                                            escapeJson(
-                                                resultSet.getString(
-                                                        "email"
-                                                )
-                                            )
-                                    )
-                                    .append("\",");
-
-
-                            json.append("\"role\":\"")
-                                    .append(
-                                            escapeJson(
-                                                resultSet.getString(
-                                                        "role"
-                                                )
-                                            )       
-                                    )
-                                    .append("\"");
-
-
-                            json.append("}");
-
-
-                            first = false;
-                        }
-
-
-                        json.append("]");
-
-
-                        resultSet.close();
-                        statement.close();
-                        connection.close();
-
-
-                        sendJson(
-                                exchange,
-                                200,
-                                json.toString()
-                        );
-
-
-                    } catch (Exception e) {
-
-                        sendJson(
-                                exchange,
-                                500,
-                                "[]"
-                        );
-                    }
-
-
-                // DELETE USER
-
-                } else if (
-                        "DELETE".equalsIgnoreCase(method)
-                ) {
-
-                    String requestData =
-                            new String(
-                                    exchange.getRequestBody()
-                                            .readAllBytes()
-                            );
-
-
-                    String id =
-                            getValue(
-                                    requestData,
-                                    "id"
-                            );
-
-
-                    String response;
-
-
-                    try {
-
-                        Connection connection =
-                                DriverManager.getConnection(
-                                        URL,
-                                        USERNAME,
-                                        PASSWORD
-                                );
-
-
-                        String sql =
-                                "DELETE FROM users " +
-                                "WHERE id = ?";
-
-
-                        PreparedStatement statement =
-                                connection.prepareStatement(sql);
-
-
-                        statement.setInt(
-                                1,
-                                Integer.parseInt(id)
-                        );
-
-
-                        int result =
-                                statement.executeUpdate();
-
-
-                        if (result > 0) {
-
-                            response =
-                                    "User Deleted Successfully!";
-
-                        } else {
-
-                            response =
-                                    "User Delete Failed!";
-                        }
-
-
-                        statement.close();
-                        connection.close();
-
-                    } catch (Exception e) {
-
-                        response =
-                                "User Delete Failed!";
-                    }
-
-
-                    sendText(
-                            exchange,
-                            response
-                    );
-
-
+                    getProducts(exchange);
+                } else if ("POST".equalsIgnoreCase(method)) {
+                    addProduct(exchange);
+                } else if ("PUT".equalsIgnoreCase(method)) {
+                    updateProduct(exchange);
+                } else if ("DELETE".equalsIgnoreCase(method)) {
+                    deleteProduct(exchange);
                 } else {
-
-                    exchange.sendResponseHeaders(
-                            405,
-                            -1
-                    );
-
-                    exchange.close();
+                    send(exchange, 405, "Method not allowed",
+                            "text/plain; charset=UTF-8");
                 }
-
             });
 
+            // =====================================
+            // ORDERS: GET, POST, PUT
+            // =====================================
 
-            // =========================================
+            server.createContext("/orders", exchange -> {
+                String method = exchange.getRequestMethod();
+
+                if ("GET".equalsIgnoreCase(method)) {
+                    getOrders(exchange);
+                } else if ("POST".equalsIgnoreCase(method)) {
+                    addOrder(exchange);
+                } else if ("PUT".equalsIgnoreCase(method)) {
+                    updateOrderStatus(exchange);
+                } else {
+                    send(exchange, 405, "Method not allowed",
+                            "text/plain; charset=UTF-8");
+                }
+            });
+
+            server.createContext("/reviews", exchange -> {
+                  String method = exchange.getRequestMethod();
+
+                  if ("POST".equalsIgnoreCase(method)) {
+                      addProductReview(exchange);
+                  } else {
+                       send(exchange, 405, "Method not allowed",
+                            "text/plain; charset=UTF-8");
+                }
+});
+
+            // =====================================
+            // USERS: GET, DELETE
+            // =====================================
+
+            server.createContext("/users", exchange -> {
+                String method = exchange.getRequestMethod();
+
+                if ("GET".equalsIgnoreCase(method)) {
+                    getUsers(exchange);
+                } else if ("DELETE".equalsIgnoreCase(method)) {
+                    deleteUser(exchange);
+                } else {
+                    send(exchange, 405, "Method not allowed",
+                            "text/plain; charset=UTF-8");
+                }
+            });
+
+            // =====================================
             // START SERVER
-            // =========================================
+            // =====================================
 
             server.start();
 
-
-            System.out.println();
-            System.out.println(
-                    "SathanaMart Server Started!"
-            );
-
-            System.out.println(
-                    "Open: http://localhost:8080"
-            );
-
-            System.out.println();
-            System.out.println(
-                    "================================"
-            );
-
-            System.out.println(
-                    "      SATHANAMART BACKEND"
-            );
-
-            System.out.println(
-                    "================================"
-            );
-
-
-            System.out.println(
-                    "Server is running..."
-            );
-
+            System.out.println("SathanaMart server started!");
+            System.out.println("Open: http://localhost:" + port);
+            System.out.println("Products API: http://localhost:"
+                    + port + "/products");
 
         } catch (Exception e) {
-
-            System.out.println(
-                    "Server Error!"
-            );
-
-            System.out.println(
-                    e.getMessage()
-            );
+            e.printStackTrace();
+            System.err.println("Server failed to start: " + e.getMessage());
         }
-
     }
 
+    // =========================================
+    // DATABASE CONNECTION
+    // =========================================
+
+    private static Connection getConnection() throws Exception {
+        return DriverManager.getConnection(URL, USERNAME, PASSWORD);
+    }
 
     // =========================================
-    // HELPER - GET FORM VALUE
+    // GET PRODUCTS
     // =========================================
 
-    static String getValue(
-            String requestData,
-            String key) {
+    private static void getProducts(HttpExchange ex) throws IOException {
+        StringBuilder json = new StringBuilder("[");
 
-        String[] values =
-                requestData.split("&");
+        String sql =
+                "SELECT id, name, price, stock, category, image "
+                + "FROM products ORDER BY id DESC";
 
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
 
-        for (String value : values) {
+            boolean first = true;
 
-            String[] pair =
-                    value.split("=", 2);
+            while (rs.next()) {
+                if (!first) json.append(",");
+                first = false;
 
-
-            if (pair.length < 2) {
-
-                continue;
-
+                json.append("{")
+                    .append("\"id\":").append(rs.getInt("id")).append(",")
+                    .append("\"name\":").append(jsonString(rs.getString("name"))).append(",")
+                    .append("\"price\":").append(rs.getDouble("price")).append(",")
+                    .append("\"stock\":").append(rs.getInt("stock")).append(",")
+                    .append("\"category\":").append(jsonString(rs.getString("category"))).append(",")
+                    .append("\"image\":").append(jsonString(rs.getString("image")))
+                    .append("}");
             }
 
+            json.append("]");
+            send(ex, 200, json.toString(), "application/json; charset=UTF-8");
 
-            if (pair[0].equals(key)) {
+        } catch (Exception e) {
+            e.printStackTrace();
+            send(ex, 500,
+                    "{\"error\":" + jsonString(e.getMessage()) + "}",
+                    "application/json; charset=UTF-8");
+        }
+    }
 
-                return java.net.URLDecoder.decode(
-                        pair[1],
-                        java.nio.charset.StandardCharsets.UTF_8
-                );
+    // =========================================
+    // ADD PRODUCT
+    // =========================================
 
-            }
+    private static void addProduct(HttpExchange ex) throws IOException {
+        String data = body(ex);
 
+        String sql =
+                "INSERT INTO products (name, price, stock, category, image) "
+                + "VALUES (?, ?, ?, ?, ?)";
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, value(data, "name"));
+            ps.setDouble(2, Double.parseDouble(value(data, "price")));
+            ps.setInt(3, Integer.parseInt(value(data, "stock")));
+            ps.setString(4, value(data, "category"));
+            ps.setString(5, value(data, "image"));
+
+            text(ex, ps.executeUpdate() > 0
+                    ? "Product Added Successfully!"
+                    : "Product Addition Failed!");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            text(ex, "Product Addition Failed!");
+        }
+    }
+
+    // =========================================
+    // UPDATE PRODUCT
+    // =========================================
+
+    private static void updateProduct(HttpExchange ex) throws IOException {
+        String data = body(ex);
+
+        String sql =
+                "UPDATE products SET name=?, price=?, stock=?, "
+                + "category=?, image=? WHERE id=?";
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, value(data, "name"));
+            ps.setDouble(2, Double.parseDouble(value(data, "price")));
+            ps.setInt(3, Integer.parseInt(value(data, "stock")));
+            ps.setString(4, value(data, "category"));
+            ps.setString(5, value(data, "image"));
+            ps.setInt(6, Integer.parseInt(value(data, "id")));
+
+            text(ex, ps.executeUpdate() > 0
+                    ? "Product Updated Successfully!"
+                    : "Product Update Failed!");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            text(ex, "Product Update Failed!");
+        }
+    }
+
+    // =========================================
+    // DELETE PRODUCT
+    // =========================================
+
+    private static void deleteProduct(HttpExchange ex) throws IOException {
+        String data = body(ex);
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(
+                     "DELETE FROM products WHERE id=?")) {
+
+            ps.setInt(1, Integer.parseInt(value(data, "id")));
+
+            text(ex, ps.executeUpdate() > 0
+                    ? "Product Deleted Successfully!"
+                    : "Product Delete Failed!");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            text(ex, "Product Delete Failed!");
+        }
+    }
+    // =========================================
+// ADD ORDER WITH DELIVERY DETAILS + COD
+// =========================================
+
+private static void addOrder(HttpExchange ex) throws IOException {
+    String data = body(ex);
+
+    String productName = value(data, "product_name");
+    String buyerEmail = value(data, "buyer_email");
+    String priceStr = value(data, "price");
+    String qtyStr = value(data, "quantity");
+    String totalStr = value(data, "total");
+
+    String customerName = value(data, "customer_name");
+    String customerPhone = value(data, "customer_phone");
+    String customerGender = value(data, "customer_gender");
+    String deliveryAddress = value(data, "delivery_address");
+    String deliveryCity = value(data, "delivery_city");
+    String deliveryPincode = value(data, "delivery_pincode");
+    String paymentMethod = value(data, "payment_method");
+
+    if (buyerEmail.isBlank() || productName.isBlank()) {
+        send(ex, 400, "Order Placement Failed! Required details missing.",
+                "text/plain; charset=UTF-8");
+        return;
+    }
+
+    if (customerName.isBlank() || customerPhone.isBlank()
+            || deliveryAddress.isBlank() || deliveryCity.isBlank()
+            || deliveryPincode.isBlank()) {
+        send(ex, 400, "Order Placement Failed! Delivery details missing.",
+                "text/plain; charset=UTF-8");
+        return;
+    }
+
+    if (!customerPhone.matches("[0-9]{10}")
+            || !deliveryPincode.matches("[0-9]{6}")) {
+        send(ex, 400, "Order Placement Failed! Invalid phone or pincode.",
+                "text/plain; charset=UTF-8");
+        return;
+    }
+
+    if (paymentMethod.isBlank()) {
+        paymentMethod = "Cash on Delivery";
+    }
+
+    if (!"Cash on Delivery".equals(paymentMethod)) {
+        send(ex, 400, "Only Cash on Delivery is currently supported.",
+                "text/plain; charset=UTF-8");
+        return;
+    }
+
+    double price;
+    double total;
+    int quantity;
+
+    try {
+        price = Double.parseDouble(priceStr);
+        quantity = Integer.parseInt(qtyStr);
+        total = totalStr.isBlank()
+                ? price * quantity
+                : Double.parseDouble(totalStr);
+
+        if (!Double.isFinite(price) || !Double.isFinite(total)
+                || price < 0 || total < 0 || quantity < 1) {
+            throw new IllegalArgumentException("Invalid order values");
+        }
+    } catch (Exception e) {
+        send(ex, 400, "Order Placement Failed! Invalid price or quantity.",
+                "text/plain; charset=UTF-8");
+        return;
+    }
+
+    String sql = "INSERT INTO orders "
+            + "(product_name, price, quantity, total, buyer_email, "
+            + "customer_name, customer_phone, customer_gender, "
+            + "delivery_address, delivery_city, delivery_pincode, payment_method) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+    try (Connection con = getConnection();
+         PreparedStatement ps = con.prepareStatement(sql)) {
+
+        ps.setString(1, productName.trim());
+        ps.setDouble(2, price);
+        ps.setInt(3, quantity);
+        ps.setDouble(4, total);
+        ps.setString(5, buyerEmail.trim());
+        ps.setString(6, customerName.trim());
+        ps.setString(7, customerPhone.trim());
+        ps.setString(8, customerGender);
+        ps.setString(9, deliveryAddress.trim());
+        ps.setString(10, deliveryCity.trim());
+        ps.setString(11, deliveryPincode.trim());
+        ps.setString(12, paymentMethod);
+
+        if (ps.executeUpdate() > 0) {
+            text(ex, "Order Placed Successfully!");
+        } else {
+            send(ex, 500, "Order Placement Failed!",
+                    "text/plain; charset=UTF-8");
         }
 
+    } catch (Exception e) {
+        e.printStackTrace();
+        send(ex, 500, "Order Placement Failed: " + e.getMessage(),
+                "text/plain; charset=UTF-8");
+    }
+}
+    
+    // =========================================
+    // GET ORDERS
+    // =========================================
 
-        return "";
+    private static void getOrders(HttpExchange ex) throws IOException {
+        String query = ex.getRequestURI().getRawQuery();
+        String buyerEmail = query == null ? "" : value(query, "buyer_email");
 
+        StringBuilder json = new StringBuilder("[");
+
+        String sql;
+        if (!buyerEmail.isBlank()) {
+            sql = "SELECT id, product_name, price, quantity, total, "
+                    + "status, order_date, buyer_email FROM orders "
+                    + "WHERE buyer_email=? ORDER BY id DESC";
+        } else {
+            // Admin order list. Do not use this unfiltered request for buyers.
+            sql = "SELECT id, product_name, price, quantity, total, "
+                    + "status, order_date, buyer_email FROM orders "
+                    + "ORDER BY id DESC";
+        }
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            if (!buyerEmail.isBlank()) {
+                ps.setString(1, buyerEmail.trim());
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                boolean first = true;
+
+                while (rs.next()) {
+                    if (!first) json.append(",");
+                    first = false;
+
+                    java.sql.Timestamp ts = rs.getTimestamp("order_date");
+                    String dateStr = ts != null ? ts.toString() : "";
+
+                    json.append("{")
+                        .append("\"id\":").append(rs.getInt("id")).append(",")
+                        .append("\"product_name\":").append(jsonString(rs.getString("product_name"))).append(",")
+                        .append("\"price\":").append(rs.getDouble("price")).append(",")
+                        .append("\"quantity\":").append(rs.getInt("quantity")).append(",")
+                        .append("\"total\":").append(rs.getDouble("total")).append(",")
+                        .append("\"status\":").append(jsonString(rs.getString("status"))).append(",")
+                        .append("\"order_date\":").append(jsonString(dateStr)).append(",")
+                        .append("\"buyer_email\":").append(jsonString(rs.getString("buyer_email")))
+                        .append("}");
+                }
+            }
+
+            json.append("]");
+            send(ex, 200, json.toString(), "application/json; charset=UTF-8");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            send(ex, 500,
+                    "{\"error\":" + jsonString(e.getMessage()) + "}",
+                    "application/json; charset=UTF-8");
+        }
     }
 
-
     // =========================================
-    // HELPER - SERVE FILE
+    // UPDATE ORDER STATUS
     // =========================================
+private static void updateOrderStatus(HttpExchange ex) throws IOException {
+    String data = body(ex);
+    String status = value(data, "status");
+    String idText = value(data, "id");
 
-    static void serveFile(
-            HttpExchange exchange,
-            String fileName,
-            String contentType)
-            throws java.io.IOException {
-
-
-        java.nio.file.Path path =
-                java.nio.file.Paths.get(
-                        fileName
-                );
-
-
-        byte[] data =
-                java.nio.file.Files.readAllBytes(
-                        path
-                );
-
-
-        exchange.getResponseHeaders().set(
-                "Content-Type",
-                contentType
-        );
-
-
-        exchange.sendResponseHeaders(
-                200,
-                data.length
-        );
-
-
-        exchange.getResponseBody().write(
-                data
-        );
-
-
-        exchange.close();
-
+    if (!status.equals("Placed")
+            && !status.equals("Shipped")
+            && !status.equals("Delivered")
+            && !status.equals("Cancelled")) {
+        text(ex, "Invalid Order Status!");
+        return;
     }
 
+    try (Connection con = getConnection();
+         PreparedStatement ps = con.prepareStatement(
+                 "UPDATE orders SET status=? WHERE id=?")) {
 
-    // =========================================
-    // HELPER - CREATE FILE ROUTE
-    // =========================================
+        ps.setString(1, status);
+        ps.setInt(2, Integer.parseInt(idText));
 
-    static void createFileRoute(
-            HttpServer server,
-            String route,
-            String fileName,
-            String contentType) {
+        text(ex, ps.executeUpdate() > 0
+                ? "Order Status Updated Successfully!"
+                : "Order Status Update Failed!");
 
+    } catch (Exception e) {
+        e.printStackTrace();
+        text(ex, "Order Status Update Failed!");
+    }
+}
 
-        server.createContext(
-                route,
-                exchange -> {
+private static void addProductReview(HttpExchange ex)
+        throws IOException {
 
-                    if (
-                        "GET".equalsIgnoreCase(
-                            exchange.getRequestMethod()
-                        )
-                    ) {
+    String data = body(ex);
 
-                        serveFile(
-                                exchange,
-                                fileName,
-                                contentType
-                        );
+    String orderIdText = value(data, "order_id");
+    String buyerEmail = value(data, "buyer_email");
+    String ratingText = value(data, "rating");
+    String comment = value(data, "review_comment");
 
-                    } else {
+    try {
+        int orderId = Integer.parseInt(orderIdText);
+        int rating = Integer.parseInt(ratingText);
 
-                        exchange.sendResponseHeaders(
-                                405,
-                                -1
-                        );
+        if (orderId <= 0 || rating < 1 || rating > 5
+                || buyerEmail.isBlank()) {
+            send(ex, 400, "Invalid review details",
+                    "text/plain; charset=UTF-8");
+            return;
+        }
 
-                        exchange.close();
+        try (Connection con = getConnection()) {
+            // Verify that this order belongs to the buyer
+            // and has been delivered.
+            String productName;
+
+            try (PreparedStatement check = con.prepareStatement(
+                    "SELECT product_name FROM orders " +
+                    "WHERE id=? AND buyer_email=? AND status='Delivered'")) {
+
+                check.setInt(1, orderId);
+                check.setString(2, buyerEmail);
+
+                try (ResultSet rs = check.executeQuery()) {
+                    if (!rs.next()) {
+                        send(ex, 403,
+                                "Only the buyer of a delivered order can review it.",
+                                "text/plain; charset=UTF-8");
+                        return;
                     }
 
+                    productName = rs.getString("product_name");
                 }
-        );
+            }
 
-    }
+            try (PreparedStatement ps = con.prepareStatement(
+                    "INSERT INTO product_reviews " +
+                    "(order_id, buyer_email, product_name, rating, review_comment) " +
+                    "VALUES (?, ?, ?, ?, ?)")) {
 
+                ps.setInt(1, orderId);
+                ps.setString(2, buyerEmail);
+                ps.setString(3, productName);
+                ps.setInt(4, rating);
+                ps.setString(5, comment);
 
-    // =========================================
-    // HELPER - SEND TEXT
-    // =========================================
+                ps.executeUpdate();
 
-    static void sendText(
-            HttpExchange exchange,
-            String response)
-            throws java.io.IOException {
-
-
-        byte[] data =
-                response.getBytes(
-                        java.nio.charset.StandardCharsets.UTF_8
-                );
-
-
-        exchange.getResponseHeaders().set(
-                "Content-Type",
-                "text/plain; charset=UTF-8"
-        );
-
-
-        exchange.sendResponseHeaders(
-                200,
-                data.length
-        );
-
-
-        exchange.getResponseBody().write(
-                data
-        );
-
-
-        exchange.close();
-
-    }
-
-
-    // =========================================
-    // HELPER - SEND JSON
-    // =========================================
-
-    static void sendJson(
-            HttpExchange exchange,
-            int status,
-            String response)
-            throws java.io.IOException {
-
-
-        byte[] data =
-                response.getBytes(
-                        java.nio.charset.StandardCharsets.UTF_8
-                );
-
-
-        exchange.getResponseHeaders().set(
-                "Content-Type",
-                "application/json; charset=UTF-8"
-        );
-
-
-        exchange.sendResponseHeaders(
-                status,
-                data.length
-        );
-
-
-        exchange.getResponseBody().write(
-                data
-        );
-
-
-        exchange.close();
-
-    }
-
-
-    // =========================================
-    // HELPER - JSON ESCAPE
-    // =========================================
-
-    static String escapeJson(
-            String value) {
-
-        if (value == null) {
-
-            return "";
-
+                send(ex, 201, "Review Submitted Successfully!",
+                        "text/plain; charset=UTF-8");
+            }
         }
 
+    } catch (java.sql.SQLIntegrityConstraintViolationException e) {
+        send(ex, 409, "This order has already been reviewed.",
+                "text/plain; charset=UTF-8");
 
-        return value
-                .replace(
-                        "\\",
-                        "\\\\"
-                )
-                .replace(
-                        "\"",
-                        "\\\""
-                )
-                .replace(
-                        "\n",
-                        "\\n"
-                )
-                .replace(
-                        "\r",
-                        "\\r"
-                );
+    } catch (NumberFormatException e) {
+        send(ex, 400, "Invalid order ID or rating.",
+                "text/plain; charset=UTF-8");
 
+    } catch (Exception e) {
+        e.printStackTrace();
+        send(ex, 500, "Unable to submit review.",
+                "text/plain; charset=UTF-8");
+    }
+}
+
+    // =========================================
+    // GET USERS
+    // =========================================
+
+    private static void getUsers(HttpExchange ex) throws IOException {
+        StringBuilder json = new StringBuilder("[");
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(
+                     "SELECT id, name, email, role FROM users ORDER BY id DESC");
+             ResultSet rs = ps.executeQuery()) {
+
+            boolean first = true;
+
+            while (rs.next()) {
+                if (!first) json.append(",");
+                first = false;
+
+                json.append("{")
+                    .append("\"id\":").append(rs.getInt("id")).append(",")
+                    .append("\"name\":").append(jsonString(rs.getString("name"))).append(",")
+                    .append("\"email\":").append(jsonString(rs.getString("email"))).append(",")
+                    .append("\"role\":").append(jsonString(rs.getString("role")))
+                    .append("}");
+            }
+
+            json.append("]");
+            send(ex, 200, json.toString(), "application/json; charset=UTF-8");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            send(ex, 500,
+                    "{\"error\":" + jsonString(e.getMessage()) + "}",
+                    "application/json; charset=UTF-8");
+        }
     }
 
+    // =========================================
+    // DELETE USER
+    // =========================================
+
+    private static void deleteUser(HttpExchange ex) throws IOException {
+        String data = body(ex);
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(
+                     "DELETE FROM users WHERE id=?")) {
+
+            ps.setInt(1, Integer.parseInt(value(data, "id")));
+
+            text(ex, ps.executeUpdate() > 0
+                    ? "User Deleted Successfully!"
+                    : "User Delete Failed!");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            text(ex, "User Delete Failed!");
+        }
+    }
+
+    // =========================================
+    // HELPERS
+    // =========================================
+
+    private static boolean method(HttpExchange ex, String expected)
+            throws IOException {
+        if (expected.equalsIgnoreCase(ex.getRequestMethod())) {
+            return true;
+        }
+
+        send(ex, 405, "Method not allowed",
+                "text/plain; charset=UTF-8");
+        return false;
+    }
+
+    private static String body(HttpExchange ex) throws IOException {
+        return new String(
+                ex.getRequestBody().readAllBytes(),
+                StandardCharsets.UTF_8);
+    }
+
+    private static String value(String data, String key) {
+        if (data == null || data.isEmpty()) return "";
+
+        for (String part : data.split("&")) {
+            String[] pair = part.split("=", 2);
+
+            String k = decode(pair[0]);
+            if (k.equals(key)) {
+                return pair.length > 1 ? decode(pair[1]) : "";
+            }
+        }
+
+        return "";
+    }
+
+    private static String decode(String s) {
+        return URLDecoder.decode(s, StandardCharsets.UTF_8);
+    }
+
+    private static String jsonString(String s) {
+        if (s == null) return "null";
+
+        StringBuilder out = new StringBuilder("\"");
+
+        for (char c : s.toCharArray()) {
+            switch (c) {
+                case '"':  out.append("\\\""); break;
+                case '\\': out.append("\\\\"); break;
+                case '\n': out.append("\\n"); break;
+                case '\r': out.append("\\r"); break;
+                case '\t': out.append("\\t"); break;
+                default:
+                    if (c < 0x20) {
+                        out.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        out.append(c);
+                    }
+            }
+        }
+
+        return out.append("\"").toString();
+    }
+
+    private static void text(HttpExchange ex, String message)
+            throws IOException {
+        send(ex, 200, message, "text/plain; charset=UTF-8");
+    }
+
+    private static void sendJson(HttpExchange ex, int status, String json)
+            throws IOException {
+        send(ex, status, json, "application/json; charset=UTF-8");
+    }
+
+    private static void send(HttpExchange ex, int status, String content,
+                             String contentType) throws IOException {
+        byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+
+        ex.getResponseHeaders().set("Content-Type", contentType);
+        ex.getResponseHeaders().set("Cache-Control", "no-store");
+        ex.sendResponseHeaders(status, bytes.length);
+
+        try (var out = ex.getResponseBody()) {
+            out.write(bytes);
+        }
+    }
+
+    private static Path resolveFile(String fileName) {
+        Path direct = Paths.get(fileName);
+        if (Files.exists(direct)) {
+            return direct;
+        }
+        Path insideOnlineMart = Paths.get("onlineMart", fileName);
+        if (Files.exists(insideOnlineMart)) {
+            return insideOnlineMart;
+        }
+        Path inParent = Paths.get("..", fileName);
+        if (Files.exists(inParent)) {
+            return inParent;
+        }
+        return direct;
+    }
+
+    private static void file(HttpServer server, String route,
+                             String fileName, String contentType) {
+        server.createContext(route, ex -> {
+            if (!"GET".equalsIgnoreCase(ex.getRequestMethod())) {
+                send(ex, 405, "Method not allowed",
+                        "text/plain; charset=UTF-8");
+                return;
+            }
+
+            try {
+                Path path = resolveFile(fileName);
+
+                if (!Files.exists(path)) {
+                    send(ex, 404, "File not found: " + fileName,
+                            "text/plain; charset=UTF-8");
+                    return;
+                }
+
+                byte[] bytes = Files.readAllBytes(path);
+
+                ex.getResponseHeaders().set("Content-Type",
+                        contentType + "; charset=UTF-8");
+                ex.getResponseHeaders().set("Cache-Control", "no-store");
+                ex.sendResponseHeaders(200, bytes.length);
+
+                try (var out = ex.getResponseBody()) {
+                    out.write(bytes);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+
+                try {
+                    send(ex, 500, "Unable to serve " + fileName,
+                            "text/plain; charset=UTF-8");
+                } catch (IOException ignored) {
+                    ex.close();
+                }
+            }
+        });
+    }
 }

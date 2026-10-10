@@ -14,6 +14,7 @@ function showRegister() {
     document.getElementById("message").innerHTML = "";
 }
 
+
 async function createAccount() {
 
     const name =
@@ -139,165 +140,73 @@ async function createAccount() {
 
 
 async function login() {
+    const emailInput = document.getElementById("loginEmail");
+    const passwordInput = document.getElementById("loginPassword");
+    const roleInput = document.getElementById("loginRole");
 
-    const email =
-        document.getElementById(
-            "loginEmail"
-        ).value.trim();
+    const email = emailInput ? emailInput.value.trim() : "";
+    const password = passwordInput ? passwordInput.value : "";
+    const role = roleInput ? roleInput.value.trim() : "";
 
-
-    const password =
-        document.getElementById(
-            "loginPassword"
-        ).value;
-
-
-    const role =
-        document.getElementById(
-            "loginRole"
-        ).value;
-
-
-    if (
-        email === "" ||
-        password === "" ||
-        role === ""
-    ) {
-
-        showMessage(
-            "Please fill all login details.",
-            "error"
-        );
-
+    if (email === "" || password === "" || role === "") {
+        showMessage("Please fill all login details.", "error");
         return;
     }
 
-
     try {
+        const data = new URLSearchParams();
+        data.append("email", email);
+        data.append("password", password);
+        data.append("role", role);
 
-        const data =
-            new URLSearchParams();
+        const response = await fetch(BACKEND_URL + "/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: data.toString()
+        });
 
+        const result = await response.text();
 
-        data.append(
-            "email",
-            email
-        );
+        if (response.ok && result.includes("Login Successfully!")) {
+            showMessage(result, "success");
 
-        data.append(
-            "password",
-            password
-        );
+            // =====================================
+            // SAVE LOGGED-IN USER EMAIL AND ROLE
+            // =====================================
+            localStorage.setItem("sathanaUserEmail", email);
+            localStorage.setItem("sathanaUserRole", role);
 
-        data.append(
-            "role",
-            role
-        );
-
-
-        const response =
-            await fetch(
-                BACKEND_URL + "/login",
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/x-www-form-urlencoded"
-                    },
-
-                    body: data.toString()
-                }
-            );
-
-
-        const result =
-            await response.text();
-
-
-        if (response.ok) {
-
-            showMessage(
-                result,
-                "success"
-            );
-
-
-            // SELLER LOGIN
-
+            // Redirect based on role
             if (role === "Seller") {
-
-                setTimeout(
-                    function () {
-
-                        window.location.href =
-                            "seller.html";
-
-                    },
-                    1000
-                );
-
+                setTimeout(function () {
+                    window.location.href = "/seller.html";
+                }, 800);
                 return;
             }
-
-
-            // BUYER LOGIN
 
             if (role === "Buyer") {
-
-                setTimeout(
-                    function () {
-
-                        window.location.href =
-                            "buyer.html";
-
-                    },
-                    1000
-                );
-
+                setTimeout(function () {
+                    window.location.href = "/buyer.html";
+                }, 800);
                 return;
             }
-
-
-            // ADMIN LOGIN
 
             if (role === "Admin") {
-
-                setTimeout(
-                    function () {
-
-                        window.location.href =
-                            "admin.html";
-
-                    },
-                    1000
-                );
-
+                setTimeout(function () {
+                    window.location.href = "/admin.html";
+                }, 800);
                 return;
             }
-
-
         } else {
-
-            showMessage(
-                result,
-                "error"
-            );
-
+            showMessage(result || "Invalid Email, Password or Role!", "error");
         }
 
-
     } catch (error) {
-
-        console.log(error);
-
-        showMessage(
-            "Unable to connect to Java backend.",
-            "error"
-        );
-
+        console.error("Login error:", error);
+        showMessage("Unable to connect to Java backend.", "error");
     }
-
 }
 
 

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SathanaMart - My Orders</title>
+    <link rel="stylesheet" href="/orders.css">
+</head>
+<body>
+    <header>
+        <h1>SathanaMart - My Orders</h1>
+    </header>
+
+    <main>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+            <button onclick="location.href='/buyer.html'">
+                ← Continue Shopping
+            </button>
+            <button onclick="location.href='/cart.html'">
+                🛒 View Cart
+            </button>
+            <button onclick="logout()" style="background: #e53935;">
+                Logout
+            </button>
+        </div>
+
+        <h2>My Orders</h2>
+        <p id="userInfo"></p>
+        <div id="ordersList">Loading your orders...</div>
+    </main>
+
+    <script src="/orders.js"></script>
+</body>
+</html>

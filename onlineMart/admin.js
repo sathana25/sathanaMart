@@ -174,6 +174,11 @@ function loadOrders() {
                         </p>
 
                         <p>
+                            Buyer:
+                            ${order.buyer_email || "N/A"}
+                        </p>
+
+                        <p>
                             Price: ₹${order.price}
                         </p>
 
