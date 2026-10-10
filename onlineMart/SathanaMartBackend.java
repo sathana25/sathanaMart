@@ -20,27 +20,40 @@ public class SathanaMartBackend {
     // DATABASE CONFIGURATION
     // =========================================
 
+    // Reads SATHANAMART_* first, then Railway's own MYSQL* variables,
+    // then falls back to a local default (for running on your laptop).
+    private static String env(String first, String second, String fallback) {
+        String v = System.getenv(first);
+        if (v != null && !v.isBlank()) return v;
+        v = System.getenv(second);
+        if (v != null && !v.isBlank()) return v;
+        return fallback;
+    }
+
     private static final String DB_HOST =
-            System.getenv().getOrDefault(
-                    "SATHANAMART_DB_HOST", "localhost");
+            env("SATHANAMART_DB_HOST", "MYSQLHOST", "localhost");
 
     private static final String DB_PORT =
-            System.getenv().getOrDefault(
-                    "SATHANAMART_DB_PORT", "3306");
+            env("SATHANAMART_DB_PORT", "MYSQLPORT", "3306");
 
     private static final String DB_NAME =
-            System.getenv().getOrDefault(
-                    "SATHANAMART_DB_NAME", "SathanaMart");
+            env("SATHANAMART_DB_NAME", "MYSQLDATABASE", "SathanaMart");
 
     private static final String USERNAME =
-            System.getenv().getOrDefault(
-                    "SATHANAMART_DB_USER", "root");
+            env("SATHANAMART_DB_USER", "MYSQLUSER", "root");
 
-    private static final String PASSWORD = "sathana2007@";
+    // Never hard-code the password. Set it as an environment variable.
+    private static final String PASSWORD =
+            env("SATHANAMART_DB_PASSWORD", "MYSQLPASSWORD", "");
+
+    // PREFERRED = use SSL when the server offers it, otherwise plain.
+    private static final String SSL_MODE =
+            env("SATHANAMART_DB_SSLMODE", "SATHANAMART_DB_SSLMODE", "PREFERRED");
+
     private static final String URL =
-        "jdbc:mysql://" + DB_HOST + ":" + DB_PORT + "/"
-                + DB_NAME
-                + "?sslMode=REQUIRED&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+            "jdbc:mysql://" + DB_HOST + ":" + DB_PORT + "/" + DB_NAME
+                    + "?sslMode=" + SSL_MODE
+                    + "&allowPublicKeyRetrieval=true&serverTimezone=UTC";
 
     // =========================================
     // MAIN
@@ -55,6 +68,8 @@ public class SathanaMartBackend {
             try (Connection con = getConnection()) {
                 System.out.println("MySQL connection successful!");
             }
+
+            initDatabase();
 
             int port = Integer.parseInt(
                     System.getenv().getOrDefault("PORT", "8080"));
@@ -301,6 +316,59 @@ public class SathanaMartBackend {
     // =========================================
     // DATABASE CONNECTION
     // =========================================
+
+    private static void initDatabase() throws Exception {
+        String[] statements = {
+            "CREATE TABLE IF NOT EXISTS users ("
+                + "id INT AUTO_INCREMENT PRIMARY KEY, "
+                + "name VARCHAR(100) NOT NULL, "
+                + "email VARCHAR(150) NOT NULL UNIQUE, "
+                + "password VARCHAR(255) NOT NULL, "
+                + "role VARCHAR(20) NOT NULL)",
+
+            "CREATE TABLE IF NOT EXISTS products ("
+                + "id INT AUTO_INCREMENT PRIMARY KEY, "
+                + "name VARCHAR(150) NOT NULL, "
+                + "price DOUBLE NOT NULL, "
+                + "stock INT NOT NULL DEFAULT 0, "
+                + "category VARCHAR(100), "
+                + "image LONGTEXT)",
+
+            "CREATE TABLE IF NOT EXISTS orders ("
+                + "id INT AUTO_INCREMENT PRIMARY KEY, "
+                + "product_name VARCHAR(150) NOT NULL, "
+                + "price DOUBLE NOT NULL, "
+                + "quantity INT NOT NULL, "
+                + "total DOUBLE NOT NULL, "
+                + "buyer_email VARCHAR(150) NOT NULL, "
+                + "customer_name VARCHAR(100), "
+                + "customer_phone VARCHAR(30), "
+                + "customer_gender VARCHAR(20), "
+                + "delivery_address VARCHAR(255), "
+                + "delivery_city VARCHAR(100), "
+                + "delivery_pincode VARCHAR(20), "
+                + "payment_method VARCHAR(50), "
+                + "status VARCHAR(30) NOT NULL DEFAULT 'Placed', "
+                + "order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)",
+
+            "CREATE TABLE IF NOT EXISTS product_reviews ("
+                + "id INT AUTO_INCREMENT PRIMARY KEY, "
+                + "order_id INT NOT NULL, "
+                + "buyer_email VARCHAR(150) NOT NULL, "
+                + "product_name VARCHAR(150) NOT NULL, "
+                + "rating INT NOT NULL, "
+                + "review_comment TEXT, "
+                + "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+        };
+
+        try (Connection con = getConnection();
+             java.sql.Statement st = con.createStatement()) {
+            for (String sql : statements) {
+                st.executeUpdate(sql);
+            }
+            System.out.println("Database tables are ready.");
+        }
+    }
 
     private static Connection getConnection() throws Exception {
         return DriverManager.getConnection(URL, USERNAME, PASSWORD);
@@ -862,19 +930,26 @@ private static void addProductReview(HttpExchange ex)
     }
 
     private static Path resolveFile(String fileName) {
-        Path direct = Paths.get(fileName);
-        if (Files.exists(direct)) {
-            return direct;
+        // 1. Optional override: set WEB_ROOT to the folder holding the HTML/CSS/JS.
+        String webRoot = System.getenv("WEB_ROOT");
+        if (webRoot != null && !webRoot.isBlank()) {
+            Path p = Paths.get(webRoot, fileName);
+            if (Files.exists(p)) return p;
         }
+
+        // 2. Folder where the app was started (repo root on Railway).
         Path insideOnlineMart = Paths.get("onlineMart", fileName);
-        if (Files.exists(insideOnlineMart)) {
-            return insideOnlineMart;
-        }
-        Path inParent = Paths.get("..", fileName);
-        if (Files.exists(inParent)) {
-            return inParent;
-        }
-        return direct;
+        if (Files.exists(insideOnlineMart)) return insideOnlineMart;
+
+        // 3. Started from inside onlineMart/ itself.
+        Path direct = Paths.get(fileName);
+        if (Files.exists(direct)) return direct;
+
+        // 4. Started from a sub-folder (for example target/).
+        Path inParent = Paths.get("..", "onlineMart", fileName);
+        if (Files.exists(inParent)) return inParent;
+
+        return insideOnlineMart;
     }
 
     private static void file(HttpServer server, String route,

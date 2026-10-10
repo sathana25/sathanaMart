@@ -1,0 +1,9 @@
+target/
+*.class
+.env
+.idea/
+.vscode/
+*.zip
+qc
+sathanamart_backup.sql
+lib/
