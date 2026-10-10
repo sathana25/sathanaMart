@@ -37,11 +37,10 @@ public class SathanaMartBackend {
                     "SATHANAMART_DB_USER", "root");
 
     private static final String PASSWORD = "sathana2007@";
-
     private static final String URL =
-            "jdbc:mysql://" + DB_HOST + ":" + DB_PORT + "/"
-                    + DB_NAME
-                    + "?sslMode=DISABLED&serverTimezone=UTC";
+        "jdbc:mysql://" + DB_HOST + ":" + DB_PORT + "/"
+                + DB_NAME
+                + "?sslMode=REQUIRED&allowPublicKeyRetrieval=true&serverTimezone=UTC";
 
     // =========================================
     // MAIN
